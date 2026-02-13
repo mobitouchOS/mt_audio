@@ -3,9 +3,10 @@
 ![Flutter](https://img.shields.io/badge/Flutter-%3E%3D3.32-02569B?logo=flutter)
 ![Dart](https://img.shields.io/badge/Dart-%5E3.8-0175C2?logo=dart)
 ![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android-lightgrey)
+![Stability](https://img.shields.io/badge/stability-beta-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-A production-ready, streams-based audio module for Flutter. Provides background playback, system notifications, queue management, and first-class **Android Auto** & **Apple CarPlay** support -- all behind a single facade class and zero external state management dependencies.
+A beta, streams-based audio module for Flutter. Provides background playback, system notifications, queue management, and first-class **Android Auto** & **Apple CarPlay** support -- all behind a single facade class and zero external state management dependencies.
 
 <p align="center">
   <img src="assets/home.png" width="220" alt="Now Playing" />
@@ -48,7 +49,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  mt_audio: ^0.1.0
+  mt_audio: ^0.2.0-beta.1
 ```
 
 ---

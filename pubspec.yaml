@@ -1,6 +1,6 @@
 name: mt_audio
-version: 0.1.0
-description: A streams-based Flutter audio package with background playback, queue management, Android Auto, and Apple CarPlay support.
+version: 0.2.0-beta.1
+description: A beta, streams-based Flutter audio package with background playback, queue management, Android Auto, and Apple CarPlay support.
 homepage: https://github.com/mobitouchOS/mt_audio
 repository: https://github.com/mobitouchOS/mt_audio
 issue_tracker: https://github.com/mobitouchOS/mt_audio/issues

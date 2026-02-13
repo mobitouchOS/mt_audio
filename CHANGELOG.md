@@ -1,3 +1,16 @@
+## 0.2.0-beta.1 - 2026-02-13
+
+Reclassified `mt_audio` as a beta release while testing is ongoing.
+
+### Changed
+
+- Updated package version to `0.2.0-beta.1`.
+- Updated README wording from production-ready to beta.
+
+### Breaking changes
+
+- None.
+
 ## 0.1.0 - 2026-02-12
 
 Initial public release of `mt_audio`.
