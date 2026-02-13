@@ -1,0 +1,22 @@
+name: mt_audio_example
+description: Example app demonstrating mt_audio package features.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.0
+  flutter: ">=3.32.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  mt_audio:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ^10.0.0
+
+flutter:
+  uses-material-design: true

@@ -1,0 +1,28 @@
+# OS / IDE
+.DS_Store
+.idea/
+*.iml
+.vscode/
+
+# Dart / Flutter
+.dart_tool/
+.packages
+.pub/
+.pub-cache/
+build/
+coverage/
+*.log
+.flutter-plugins-dependencies
+
+# Example app local and generated artifacts
+example/.dart_tool/
+example/build/
+example/android/.gradle/
+example/android/local.properties
+example/ios/Pods/
+example/ios/Flutter/ephemeral/
+example/ios/Flutter/flutter_export_environment.sh
+
+# Ensure these tracked files are not treated as ignored (override parent ignore rules)
+!PLAN.md
+!build.yaml

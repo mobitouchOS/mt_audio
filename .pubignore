@@ -1,0 +1,19 @@
+# Local/build artifacts
+.dart_tool/
+build/
+coverage/
+.flutter-plugins-dependencies
+
+# Internal docs/config not intended for package consumers
+.claude/
+CLAUDE.md
+PLAN.md
+
+# Example-generated artifacts
+example/.dart_tool/
+example/build/
+example/android/build/
+example/android/local.properties
+example/ios/Pods/
+example/ios/Flutter/ephemeral/
+example/ios/Flutter/flutter_export_environment.sh
