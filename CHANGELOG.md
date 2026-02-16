@@ -3,6 +3,11 @@
 ### Changed
 
 - Replaced `MtAudioSource` sealed class (`MtSingleSource`, `MtPlaylistSource`, `MtLiveSource`) with two explicit methods on `MtAudioPlayer`: `setAudioItem(MtAudioItem)` and `setPlaylist(List<MtAudioItem>, {int initialIndex})`.
+- Simplified internal playback state stream and added `.distinct()` to prevent redundant emissions.
+
+### Fixed
+
+- `ffRewindInterval` from `MtAudioPlayerConfig` is now correctly forwarded to system media controls (lock screen, notification, Android Auto, CarPlay). Previously, system-level fast-forward/rewind buttons used default intervals instead of the configured value.
 
 ### Breaking changes
 

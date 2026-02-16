@@ -78,6 +78,8 @@ class MtAudioPlayer {
         androidShowNotificationBadge: true,
         preloadArtwork: true,
         androidNotificationOngoing: true,
+        fastForwardInterval: config.ffRewindInterval,
+        rewindInterval: config.ffRewindInterval,
       ),
     );
 
@@ -160,39 +162,21 @@ class MtAudioPlayer {
     );
 
     _subscriptions.add(
-      Rx.combineLatest2<
-            ({
-              AudioProcessingState processingState,
-              bool playing,
-              AudioServiceRepeatMode repeatMode,
-              AudioServiceShuffleMode shuffleMode,
-              double speed,
-            }),
-            double,
-            void
-          >(
-            playbackUiStateStream,
-            _handler.volumeStream,
-            (playbackState, volume) {
-              final status = _mapAudioProcessingState(
-                playbackState.processingState,
-                playbackState.playing,
-              );
-              final repeatMode = _mapRepeatMode(playbackState.repeatMode);
-
-              _playbackStateSubject.add(
-                MtPlaybackState(
-                  status: status,
-                  repeatMode: repeatMode,
-                  shuffleEnabled:
-                      playbackState.shuffleMode == AudioServiceShuffleMode.all,
-                  volume: volume,
-                  speed: playbackState.speed,
-                ),
-              );
-            },
-          )
-          .listen((_) {}),
+      Rx.combineLatest2(
+        playbackUiStateStream,
+        _handler.volumeStream,
+        (playbackState, volume) => MtPlaybackState(
+          status: _mapAudioProcessingState(
+            playbackState.processingState,
+            playbackState.playing,
+          ),
+          repeatMode: _mapRepeatMode(playbackState.repeatMode),
+          shuffleEnabled:
+              playbackState.shuffleMode == AudioServiceShuffleMode.all,
+          volume: volume,
+          speed: playbackState.speed,
+        ),
+      ).distinct().listen(_playbackStateSubject.add),
     );
 
     // Position state stream
@@ -405,6 +389,7 @@ class MtAudioPlayer {
       MtRepeatMode.one => AudioServiceRepeatMode.one,
       MtRepeatMode.all => AudioServiceRepeatMode.all,
     };
+
     return _handler.setRepeatMode(audioServiceMode);
   }
 
@@ -413,6 +398,7 @@ class MtAudioPlayer {
     final audioServiceMode = enabled
         ? AudioServiceShuffleMode.all
         : AudioServiceShuffleMode.none;
+
     return _handler.setShuffleMode(audioServiceMode);
   }
 
