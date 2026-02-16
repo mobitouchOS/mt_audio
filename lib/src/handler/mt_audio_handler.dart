@@ -17,7 +17,7 @@ class MtAudioHandler extends BaseAudioHandler
   MtAudioHandler({
     Duration ffRewindInterval = const Duration(seconds: 10),
   }) : _ffRewindInterval = ffRewindInterval,
-       _lateBindingDelegate = LateBindingAndroidAutoDelegate() {
+       _androidAutoDelegate = LateBindingAndroidAutoDelegate() {
     _init();
   }
 
@@ -26,11 +26,17 @@ class MtAudioHandler extends BaseAudioHandler
   /// Fast-forward and rewind interval
   final Duration _ffRewindInterval;
 
-  final LateBindingAndroidAutoDelegate _lateBindingDelegate;
+  final LateBindingAndroidAutoDelegate _androidAutoDelegate;
+
+  /// Whether queue synchronization is currently suppressed to avoid feedback loops
+  /// (e.g. flickering during reorder)
   bool _suppressQueueSync = false;
 
   final _errorSubject = BehaviorSubject<MtAudioError?>.seeded(null);
   final _volumeSubject = BehaviorSubject<double>.seeded(1);
+
+  /// Allows for smoother seek bar updates by emitting optimistic position updates immediately on seek.
+  /// Note that this is NOT a 1:1 replacement for local seekbar state management, as it handles all other controls too.
   final _optimisticPositionSubject = BehaviorSubject<Duration?>.seeded(null);
 
   Duration? _optimisticPosition;
@@ -64,6 +70,17 @@ class MtAudioHandler extends BaseAudioHandler
     // Bridge player state to audio_service playback state
     _player.playbackEventStream.listen(_broadcastState);
     _player.positionStream.listen(_maybeClearOptimisticPosition);
+
+    // Forward playback errors to error subject
+    _player.errorStream.listen((error) {
+      _errorSubject.add(
+        MtAudioError(
+          code: MtAudioErrorCode.unknown,
+          message: error.message ?? 'Playback error',
+          details: error.toString(),
+        ),
+      );
+    });
 
     // Initialize queue from player sequence
     _player.sequenceStateStream.listen((sequenceState) {
@@ -129,6 +146,7 @@ class MtAudioHandler extends BaseAudioHandler
     return clamped;
   }
 
+  /// Sets an optimistic position that will be reflected in the playback state until the next actual position update from the player.
   void _setOptimisticPosition(Duration position) {
     _optimisticPosition = position;
     _optimisticPositionSubject.add(position);
@@ -142,6 +160,7 @@ class MtAudioHandler extends BaseAudioHandler
     _broadcastState(_player.playbackEvent);
   }
 
+  /// Clears the optimistic position if the actual position from the player is close enough to it, indicating that the seek has been processed.
   void _maybeClearOptimisticPosition(Duration actualPosition) {
     final optimisticPosition = _optimisticPosition;
     if (optimisticPosition == null) return;
@@ -197,26 +216,34 @@ class MtAudioHandler extends BaseAudioHandler
     }
   }
 
-  /// Sets the audio source from an [MtAudioSource].
-  Future<void> setAudioSource(MtAudioSource source) async {
+  /// Sets a single audio item as the source.
+  Future<void> setItem(MtAudioItem item) async {
     try {
-      switch (source) {
-        case MtSingleSource():
-          final audioSource = _createAudioSource(source.item);
-          await _player.setAudioSource(audioSource);
+      final audioSource = _createAudioSource(item);
+      await _player.setAudioSource(audioSource);
+      _errorSubject.add(null);
+    } catch (e) {
+      final error = MtAudioError(
+        code: MtAudioErrorCode.sourceLoadFailed,
+        message: 'Failed to load audio source',
+        details: e.toString(),
+      );
+      _errorSubject.add(error);
+      rethrow;
+    }
+  }
 
-        case MtPlaylistSource():
-          await _player.setAudioSources(
-            source.items.map(_createAudioSource).toList(),
-            initialIndex: source.initialIndex,
-          );
-
-        case MtLiveSource():
-          final audioSource = _createAudioSource(source.item);
-          await _player.setAudioSource(audioSource);
-      }
-
-      _errorSubject.add(null); // Clear any previous errors
+  /// Sets a playlist of audio items as the source.
+  Future<void> setPlaylist(
+    List<MtAudioItem> items, {
+    int initialIndex = 0,
+  }) async {
+    try {
+      await _player.setAudioSources(
+        items.map(_createAudioSource).toList(),
+        initialIndex: initialIndex,
+      );
+      _errorSubject.add(null);
     } catch (e) {
       final error = MtAudioError(
         code: MtAudioErrorCode.sourceLoadFailed,
@@ -500,14 +527,14 @@ class MtAudioHandler extends BaseAudioHandler
   /// This must be called after player creation but before any Android Auto
   /// browsing requests occur.
   void bindDelegate(MtAndroidAutoDelegate delegate) {
-    _lateBindingDelegate.bind(delegate);
+    _androidAutoDelegate.bind(delegate);
   }
 
   /// Whether the delegate has been bound.
-  bool get isDelegateBound => _lateBindingDelegate.isBound;
+  bool get isDelegateBound => _androidAutoDelegate.isBound;
 
   @override
-  MtAndroidAutoDelegate get androidAutoDelegate => _lateBindingDelegate;
+  MtAndroidAutoDelegate get androidAutoDelegate => _androidAutoDelegate;
 
   /// Disposes of this handler and releases resources.
   Future<void> dispose() async {

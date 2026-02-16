@@ -140,7 +140,7 @@ class MtCarPlaySection {
 ///   @override
 ///   Future<void> onPlayFromMediaId(String mediaId) async {
 ///     final track = await getTrack(mediaId);
-///     await player.setSource(MtSingleSource(item: track));
+///     await player.setAudioItem(track);
 ///     await player.play();
 ///   }
 /// }

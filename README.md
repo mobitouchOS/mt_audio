@@ -6,7 +6,9 @@
 ![Stability](https://img.shields.io/badge/stability-beta-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-A beta, streams-based audio module for Flutter. Provides background playback, system notifications, queue management, and first-class **Android Auto** & **Apple CarPlay** support -- all behind a single facade class and zero external state management dependencies.
+A stream-based audio module for Flutter. Provides background playback, system notifications, queue management, and first-class **Android Auto** & **Apple CarPlay** support -- all behind a single facade class and zero external state management dependencies.
+
+This package reduces implementation overhead when combining packages such as `just_audio` and `audio_service`. It provides a simple wrapper API that captures our long-standing Flutter audio expertise in a single dependency.
 
 <p align="center">
   <img src="assets/home.png" width="220" alt="Now Playing" />
@@ -19,16 +21,16 @@ A beta, streams-based audio module for Flutter. Provides background playback, sy
 ## Features
 
 - **Background playback** with lock screen controls and media notifications
-- **Queue management** -- add, insert, remove, reorder, shuffle
+- **Queue management** - add, insert, remove, reorder, shuffle
 - **Seek forward / backward** with configurable intervals
-- **Playback speed** control (0.5x -- 2.0x)
-- **Repeat modes** -- off, one, all
+- **Playback speed** control (0.5x - 2.0x)
+- **Repeat modes** - off, one, all
 - **Live stream** support with ICY metadata
 - **Android Auto** integration via delegate pattern
 - **Apple CarPlay** integration with list, grid, and tab bar templates
-- **Pre-built widgets** -- seek bar, play/pause, skip, speed selector, queue list, artwork, now playing info, and a full player builder
-- **State management agnostic** -- pure Dart `BehaviorSubject` streams with synchronous getters
-- **Audio session handling** -- automatic interruption and becoming-noisy management
+- **Pre-built widgets** - seek bar, play/pause, skip, speed selector, queue list, artwork, now playing info, and a full player builder
+- **State management agnostic** - `rxdart` `BehaviorSubject` streams with synchronous getters
+- **Audio session handling** - automatic interruption and becoming-noisy management
 
 ## Core Stack
 
@@ -37,7 +39,7 @@ A beta, streams-based audio module for Flutter. Provides background playback, sy
 | [just_audio](https://pub.dev/packages/just_audio) | ^0.10.5 | Audio playback engine |
 | [audio_service](https://pub.dev/packages/audio_service) | ^0.18.18 | Background playback & notifications |
 | [audio_session](https://pub.dev/packages/audio_session) | ^0.2.2 | Audio session & interruption handling |
-| [mt_carplay](https://pub.dev/packages/mt_carplay) | custom fork | Apple CarPlay integration |
+| [mt_carplay](https://pub.dev/packages/mt_carplay) | ^1.2.11 | Apple CarPlay integration (fork) |
 | [rxdart](https://pub.dev/packages/rxdart) | ^0.28.0 | Stream utilities & BehaviorSubjects |
 | [equatable](https://pub.dev/packages/equatable) | ^2.0.8 | Value equality for models |
 
@@ -49,7 +51,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  mt_audio: ^0.2.0-beta.1
+  mt_audio: ^0.2.0-beta.3
 ```
 
 ---
@@ -266,40 +268,32 @@ final player = await MtAudioPlayer.init(
 
 ### Set an audio source
 
-`MtAudioSource` is a sealed class with three variants:
-
 ```dart
 // Single track
-await player.setSource(
-  MtSingleSource(
-    item: MtAudioItem(
-      id: '1',
-      uri: Uri.parse('https://example.com/audio.mp3'),
-      title: 'My Song',
-      artist: 'Artist Name',
-      artworkUri: Uri.parse('https://example.com/artwork.jpg'),
-      duration: Duration(minutes: 3, seconds: 45),
-    ),
+await player.setAudioItem(
+  MtAudioItem(
+    id: '1',
+    uri: Uri.parse('https://example.com/audio.mp3'),
+    title: 'My Song',
+    artist: 'Artist Name',
+    artworkUri: Uri.parse('https://example.com/artwork.jpg'),
+    duration: Duration(minutes: 3, seconds: 45),
   ),
 );
 
 // Playlist
-await player.setSource(
-  MtPlaylistSource(
-    items: [item1, item2, item3],
-    initialIndex: 0,
-  ),
+await player.setPlaylist(
+  [item1, item2, item3],
+  initialIndex: 0,
 );
 
-// Live stream
-await player.setSource(
-  MtLiveSource(
-    item: MtAudioItem(
-      id: 'live',
-      uri: Uri.parse('https://example.com/stream'),
-      title: 'Live Radio',
-      isLive: true,
-    ),
+// Live stream (isLive flag on the item controls live behavior)
+await player.setAudioItem(
+  MtAudioItem(
+    id: 'live',
+    uri: Uri.parse('https://example.com/stream'),
+    title: 'Live Radio',
+    isLive: true,
   ),
 );
 ```
@@ -550,7 +544,7 @@ class MyAndroidAutoDelegate implements MtAndroidAutoDelegate {
   @override
   Future<void> onPlayFromMediaId(String mediaId) async {
     final track = await repository.getTrackById(mediaId);
-    await player.setSource(MtSingleSource(item: track));
+    await player.setAudioItem(track);
     await player.play();
   }
 
@@ -634,7 +628,7 @@ class MyCarPlayDelegate extends MtCarPlayDelegate {
   @override
   Future<void> onPlayFromMediaId(String mediaId) async {
     final track = await repository.getTrackById(mediaId);
-    await player.setSource(MtSingleSource(item: track));
+    await player.setAudioItem(track);
     await player.play();
   }
 }

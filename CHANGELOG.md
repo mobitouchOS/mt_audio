@@ -1,3 +1,30 @@
+## 0.2.0-beta.3 - 2026-02-16
+
+### Changed
+
+- Replaced `MtAudioSource` sealed class (`MtSingleSource`, `MtPlaylistSource`, `MtLiveSource`) with two explicit methods on `MtAudioPlayer`: `setAudioItem(MtAudioItem)` and `setPlaylist(List<MtAudioItem>, {int initialIndex})`.
+
+### Breaking changes
+
+- **Removed** `MtAudioSource`, `MtSingleSource`, `MtPlaylistSource`, and `MtLiveSource` classes.
+- **Removed** `MtAudioPlayer.setSource(MtAudioSource)`.
+- **Added** `MtAudioPlayer.setAudioItem(MtAudioItem)` -- replaces `setSource(MtSingleSource(...))` and `setSource(MtLiveSource(...))`.
+- **Added** `MtAudioPlayer.setPlaylist(List<MtAudioItem>, {int initialIndex})` -- replaces `setSource(MtPlaylistSource(...))`.
+
+#### Migration
+
+```dart
+// Before
+await player.setSource(MtSingleSource(item: track));
+await player.setSource(MtLiveSource(item: stream));
+await player.setSource(MtPlaylistSource(items: tracks, initialIndex: 2));
+
+// After
+await player.setAudioItem(track);
+await player.setAudioItem(stream);
+await player.setPlaylist(tracks, initialIndex: 2);
+```
+
 ## 0.2.0-beta.2 - 2026-02-13
 
 Reclassified `mt_audio` as a beta release while testing is ongoing.

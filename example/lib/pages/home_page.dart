@@ -94,7 +94,7 @@ class _HomePageState extends State<HomePage> {
 
             // Load source button
             FilledButton.icon(
-              onPressed: () => _loadSource(player),
+              onPressed: () => _loadAudioSource(player),
               icon: const Icon(Icons.play_circle_outline),
               label: Text(
                 _sourceType == SourceType.playlist
@@ -289,22 +289,19 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> _loadSource(MtAudioPlayer player) async {
-    MtAudioSource source;
-
+  Future<void> _loadAudioSource(MtAudioPlayer player) async {
     switch (_sourceType) {
       case SourceType.single:
-        source = MtSingleSource(item: sampleTracks[_selectedTrackIndex]);
+        await player.setAudioItem(sampleTracks[_selectedTrackIndex]);
       case SourceType.playlist:
-        source = MtPlaylistSource(
-          items: sampleTracks,
+        await player.setPlaylist(
+          sampleTracks,
           initialIndex: _selectedTrackIndex,
         );
       case SourceType.live:
-        source = MtLiveSource(item: liveStreams[_selectedLiveIndex]);
+        await player.setAudioItem(liveStreams[_selectedLiveIndex]);
     }
 
-    await player.setSource(source);
     await player.play();
   }
 }

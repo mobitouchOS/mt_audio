@@ -7,7 +7,6 @@ import 'package:mt_audio/src/carplay/mt_carplay_handler.dart';
 import 'package:mt_audio/src/handler/mt_audio_handler.dart';
 import 'package:mt_audio/src/models/mt_audio_error.dart';
 import 'package:mt_audio/src/models/mt_audio_item.dart';
-import 'package:mt_audio/src/models/mt_audio_source.dart';
 import 'package:mt_audio/src/models/mt_playback_state.dart';
 import 'package:mt_audio/src/models/mt_position_state.dart';
 import 'package:mt_audio/src/models/mt_queue_state.dart';
@@ -30,12 +29,10 @@ import 'package:rxdart/rxdart.dart';
 /// );
 ///
 /// // Set audio source
-/// await player.setSource(MtSingleSource(
-///   item: MtAudioItem(
-///     id: '1',
-///     uri: Uri.parse('https://example.com/audio.mp3'),
-///     title: 'My Audio',
-///   ),
+/// await player.setAudioItem(MtAudioItem(
+///   id: '1',
+///   uri: Uri.parse('https://example.com/audio.mp3'),
+///   title: 'My Audio',
 /// ));
 ///
 /// // Listen to state
@@ -359,9 +356,12 @@ class MtAudioPlayer {
 
   //* Queue management
 
-  /// Sets the audio source and replaces the current queue.
-  Future<void> setSource(MtAudioSource source) =>
-      _handler.setAudioSource(source);
+  /// Sets a single audio item as the source and replaces the current queue.
+  Future<void> setAudioItem(MtAudioItem item) => _handler.setItem(item);
+
+  /// Sets a playlist as the source and replaces the current queue.
+  Future<void> setPlaylist(List<MtAudioItem> items, {int initialIndex = 0}) =>
+      _handler.setPlaylist(items, initialIndex: initialIndex);
 
   /// Adds an item to the end of the queue.
   Future<void> addToQueue(MtAudioItem item) => _handler.addAudioItem(item);
