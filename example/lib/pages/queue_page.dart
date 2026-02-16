@@ -40,9 +40,7 @@ class QueuePage extends StatelessWidget {
                     Expanded(
                       child: FilledButton.icon(
                         onPressed: () async {
-                          await player.setSource(
-                            MtPlaylistSource(items: sampleTracks),
-                          );
+                          await player.setPlaylist(sampleTracks);
                           await player.play();
                         },
                         icon: const Icon(Icons.playlist_play),

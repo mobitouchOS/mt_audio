@@ -62,7 +62,7 @@ There are no tests, code generation, or build_runner steps in this module.
 
 5. **CarPlay uses `mt_carplay`**: `MtCarPlayHandler` manages the connection lifecycle, navigation stack (max 5 deep), template rendering (list + grid + tab bar), and automatic playback state sync via player streams.
 
-6. **Sealed class for audio sources**: `MtAudioSource` is a sealed class with three variants: `MtSingleSource`, `MtPlaylistSource`, `MtLiveSource`.
+6. **Two-method source API**: Audio sources are set via `setAudioItem(MtAudioItem)` for single items (both regular tracks and live streams) and `setPlaylist(List<MtAudioItem>, {initialIndex})` for playlists. The live/non-live distinction is encoded in `MtAudioItem.isLive`.
 
 7. **`MtAudioItem` ↔ `MediaItem` conversion**: `MtAudioItem` stores URI, headers, and `isLive` flag in the `extras` map of `MediaItem` for round-trip conversion. The `uri` field is stored as `extras['uri']`, not `MediaItem.id`.
 
@@ -92,7 +92,7 @@ Queue state tracks `shuffleIndices` separately. `MtAudioHandler.getQueueIndex()`
 
 - Uses `very_good_analysis` linter rules with relaxed settings: no 80-char line limit, no public API docs requirement, trailing commas preserved
 - All model classes extend `Equatable`
-- Sealed classes for type-safe variants (`MtAudioSource`, `MtCarPlayItem`)
+- Sealed classes for type-safe variants (`MtCarPlayItem`)
 - All classes prefixed with `Mt` (Mobitouch namespace)
 - Widgets take `MtAudioPlayer player` as required parameter
 - The example app uses a simple `InheritedWidget` (`PlayerProvider`) — not Riverpod

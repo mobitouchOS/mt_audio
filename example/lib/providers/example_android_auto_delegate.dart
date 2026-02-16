@@ -51,7 +51,7 @@ class ExampleAndroidAutoDelegate implements MtAndroidAutoDelegate {
       (i) => i.id == mediaId,
       orElse: () => throw ArgumentError('Unknown media ID: $mediaId'),
     );
-    await player.setSource(MtSingleSource(item: item));
+    await player.setAudioItem(item);
     await player.play();
   }
 

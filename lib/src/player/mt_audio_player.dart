@@ -7,7 +7,6 @@ import 'package:mt_audio/src/carplay/mt_carplay_handler.dart';
 import 'package:mt_audio/src/handler/mt_audio_handler.dart';
 import 'package:mt_audio/src/models/mt_audio_error.dart';
 import 'package:mt_audio/src/models/mt_audio_item.dart';
-import 'package:mt_audio/src/models/mt_audio_source.dart';
 import 'package:mt_audio/src/models/mt_playback_state.dart';
 import 'package:mt_audio/src/models/mt_position_state.dart';
 import 'package:mt_audio/src/models/mt_queue_state.dart';
@@ -30,12 +29,10 @@ import 'package:rxdart/rxdart.dart';
 /// );
 ///
 /// // Set audio source
-/// await player.setSource(MtSingleSource(
-///   item: MtAudioItem(
-///     id: '1',
-///     uri: Uri.parse('https://example.com/audio.mp3'),
-///     title: 'My Audio',
-///   ),
+/// await player.setAudioItem(MtAudioItem(
+///   id: '1',
+///   uri: Uri.parse('https://example.com/audio.mp3'),
+///   title: 'My Audio',
 /// ));
 ///
 /// // Listen to state
@@ -81,6 +78,8 @@ class MtAudioPlayer {
         androidShowNotificationBadge: true,
         preloadArtwork: true,
         androidNotificationOngoing: true,
+        fastForwardInterval: config.ffRewindInterval,
+        rewindInterval: config.ffRewindInterval,
       ),
     );
 
@@ -163,39 +162,21 @@ class MtAudioPlayer {
     );
 
     _subscriptions.add(
-      Rx.combineLatest2<
-            ({
-              AudioProcessingState processingState,
-              bool playing,
-              AudioServiceRepeatMode repeatMode,
-              AudioServiceShuffleMode shuffleMode,
-              double speed,
-            }),
-            double,
-            void
-          >(
-            playbackUiStateStream,
-            _handler.volumeStream,
-            (playbackState, volume) {
-              final status = _mapAudioProcessingState(
-                playbackState.processingState,
-                playbackState.playing,
-              );
-              final repeatMode = _mapRepeatMode(playbackState.repeatMode);
-
-              _playbackStateSubject.add(
-                MtPlaybackState(
-                  status: status,
-                  repeatMode: repeatMode,
-                  shuffleEnabled:
-                      playbackState.shuffleMode == AudioServiceShuffleMode.all,
-                  volume: volume,
-                  speed: playbackState.speed,
-                ),
-              );
-            },
-          )
-          .listen((_) {}),
+      Rx.combineLatest2(
+        playbackUiStateStream,
+        _handler.volumeStream,
+        (playbackState, volume) => MtPlaybackState(
+          status: _mapAudioProcessingState(
+            playbackState.processingState,
+            playbackState.playing,
+          ),
+          repeatMode: _mapRepeatMode(playbackState.repeatMode),
+          shuffleEnabled:
+              playbackState.shuffleMode == AudioServiceShuffleMode.all,
+          volume: volume,
+          speed: playbackState.speed,
+        ),
+      ).distinct().listen(_playbackStateSubject.add),
     );
 
     // Position state stream
@@ -359,9 +340,12 @@ class MtAudioPlayer {
 
   //* Queue management
 
-  /// Sets the audio source and replaces the current queue.
-  Future<void> setSource(MtAudioSource source) =>
-      _handler.setAudioSource(source);
+  /// Sets a single audio item as the source and replaces the current queue.
+  Future<void> setAudioItem(MtAudioItem item) => _handler.setItem(item);
+
+  /// Sets a playlist as the source and replaces the current queue.
+  Future<void> setPlaylist(List<MtAudioItem> items, {int initialIndex = 0}) =>
+      _handler.setPlaylist(items, initialIndex: initialIndex);
 
   /// Adds an item to the end of the queue.
   Future<void> addToQueue(MtAudioItem item) => _handler.addAudioItem(item);
@@ -405,6 +389,7 @@ class MtAudioPlayer {
       MtRepeatMode.one => AudioServiceRepeatMode.one,
       MtRepeatMode.all => AudioServiceRepeatMode.all,
     };
+
     return _handler.setRepeatMode(audioServiceMode);
   }
 
@@ -413,6 +398,7 @@ class MtAudioPlayer {
     final audioServiceMode = enabled
         ? AudioServiceShuffleMode.all
         : AudioServiceShuffleMode.none;
+
     return _handler.setShuffleMode(audioServiceMode);
   }
 

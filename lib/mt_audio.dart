@@ -21,7 +21,6 @@ export 'src/carplay/mt_carplay_item.dart';
 // Models
 export 'src/models/mt_audio_error.dart';
 export 'src/models/mt_audio_item.dart';
-export 'src/models/mt_audio_source.dart';
 export 'src/models/mt_media_library_item.dart';
 export 'src/models/mt_playback_state.dart';
 export 'src/models/mt_position_state.dart';

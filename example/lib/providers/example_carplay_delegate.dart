@@ -202,15 +202,13 @@ class ExampleCarPlayDelegate implements MtCarPlayDelegate {
     if (playlist != null && playlist.length > 1) {
       // Queue playback for playlist items
       final initialIndex = playlist.indexWhere((i) => i.id == mediaId);
-      await player.setSource(
-        MtPlaylistSource(
-          items: playlist,
-          initialIndex: initialIndex >= 0 ? initialIndex : 0,
-        ),
+      await player.setPlaylist(
+        playlist,
+        initialIndex: initialIndex >= 0 ? initialIndex : 0,
       );
     } else {
       // Single item playback
-      await player.setSource(MtSingleSource(item: item));
+      await player.setAudioItem(item);
     }
 
     await player.play();
