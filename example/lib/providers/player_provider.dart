@@ -14,7 +14,8 @@ class PlayerProvider extends InheritedWidget {
 
   /// Gets the player from the widget tree.
   static MtAudioPlayer of(BuildContext context) {
-    final provider = context.dependOnInheritedWidgetOfExactType<PlayerProvider>();
+    final provider = context
+        .dependOnInheritedWidgetOfExactType<PlayerProvider>();
     assert(provider != null, 'No PlayerProvider found in context');
     return provider!.player;
   }
