@@ -11,6 +11,20 @@ enum MtCarPlayTemplateType {
   grid,
 }
 
+/// Converts a URI to a string suitable for mt_carplay's image field.
+///
+/// - `asset:///` URIs are stripped to bare asset paths (mt_carplay handles
+///   these natively on iOS).
+/// - All other URIs are passed through as-is.
+String? _cpImageFromUri(Uri? uri) {
+  if (uri == null) return null;
+  if (uri.scheme == 'asset') {
+    final path = uri.path;
+    return path.startsWith('/') ? path.substring(1) : path;
+  }
+  return uri.toString();
+}
+
 /// Sealed class representing items in a CarPlay media library.
 ///
 /// Use [MtCarPlayBrowsableItem] for navigable directories (folders, categories).
@@ -85,7 +99,7 @@ final class MtCarPlayBrowsableItem extends MtCarPlayItem {
     return CPListItem(
       text: title,
       detailText: subtitle ?? '',
-      image: imageUri?.toString(),
+      image: _cpImageFromUri(imageUri),
       accessoryType: CPListItemAccessoryTypes.disclosureIndicator,
       onPress: (complete, self) async {
         await onSelect(id).timeout(const Duration(seconds: 5));
@@ -102,7 +116,7 @@ final class MtCarPlayBrowsableItem extends MtCarPlayItem {
       titleVariants: [
         title,
       ],
-      image: imageUri?.toString() ?? '',
+      image: _cpImageFromUri(imageUri) ?? '',
       onPress: () {
         onSelect(id);
       },
@@ -140,7 +154,7 @@ final class MtCarPlayPlayableItem extends MtCarPlayItem {
     return CPListItem(
       text: item.title,
       detailText: item.artist ?? item.album ?? '',
-      image: item.artworkUri?.toString(),
+      image: _cpImageFromUri(item.artworkUri),
       isPlaying: isPlaying,
       playbackProgress: playbackProgress,
       onPress: (complete, self) async {
@@ -158,7 +172,7 @@ final class MtCarPlayPlayableItem extends MtCarPlayItem {
       titleVariants: [
         item.title,
       ],
-      image: item.artworkUri?.toString() ?? '',
+      image: _cpImageFromUri(item.artworkUri) ?? '',
       onPress: () {
         onSelect(item.id);
       },

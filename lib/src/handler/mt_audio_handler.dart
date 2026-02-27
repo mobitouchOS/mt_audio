@@ -5,6 +5,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:mt_audio/mt_audio.dart';
 import 'package:mt_audio/src/android_auto/late_binding_android_auto_delegate.dart';
 import 'package:mt_audio/src/android_auto/mt_android_auto_handler.dart';
+import 'package:mt_audio/src/utils/mt_asset_resolver.dart';
 import 'package:rxdart/rxdart.dart';
 
 /// Internal audio handler that manages audio playback.
@@ -15,13 +16,16 @@ class MtAudioHandler extends BaseAudioHandler
     with QueueHandler, SeekHandler, MtAndroidAutoHandler {
   /// Creates an [MtAudioHandler].
   MtAudioHandler({
+    required MtAssetResolver assetResolver,
     Duration ffRewindInterval = const Duration(seconds: 10),
-  }) : _ffRewindInterval = ffRewindInterval,
+  }) : _assetResolver = assetResolver,
+       _ffRewindInterval = ffRewindInterval,
        _androidAutoDelegate = LateBindingAndroidAutoDelegate() {
     _init();
   }
 
   final AudioPlayer _player = AudioPlayer();
+  final MtAssetResolver _assetResolver;
 
   /// Fast-forward and rewind interval
   final Duration _ffRewindInterval;
@@ -116,12 +120,21 @@ class MtAudioHandler extends BaseAudioHandler
       _player.shuffleModeEnabled,
       _player.shuffleIndices,
     );
+    final queueLength = queue.valueOrNull?.length ?? 0;
+    final controls = _getControls(
+      playing: playing,
+      isLive: isLive,
+      queueLength: queueLength,
+    );
 
     playbackState.add(
       playbackState.value.copyWith(
-        controls: _getControls(playing: playing, isLive: isLive),
+        controls: controls,
         systemActions: _getSystemActions(isLive: isLive),
-        androidCompactActionIndices: const [0, 1, 2],
+        androidCompactActionIndices: List.generate(
+          controls.length.clamp(0, 3),
+          (i) => i,
+        ),
         processingState: _mapProcessingState(processingState),
         playing: playing,
         updatePosition: _optimisticPosition ?? _player.position,
@@ -183,11 +196,13 @@ class MtAudioHandler extends BaseAudioHandler
   List<MediaControl> _getControls({
     required bool playing,
     required bool isLive,
+    required int queueLength,
   }) {
+    final showSkipControls = !isLive && queueLength > 1;
     return [
-      if (!isLive) MediaControl.skipToPrevious,
+      if (showSkipControls) MediaControl.skipToPrevious,
       if (playing) MediaControl.pause else MediaControl.play,
-      if (!isLive) MediaControl.skipToNext,
+      if (showSkipControls) MediaControl.skipToNext,
     ];
   }
 
@@ -219,7 +234,8 @@ class MtAudioHandler extends BaseAudioHandler
   /// Sets a single audio item as the source.
   Future<void> setItem(MtAudioItem item) async {
     try {
-      final audioSource = _createAudioSource(item);
+      final resolved = await _assetResolver.resolveItem(item);
+      final audioSource = _createAudioSource(resolved);
       await _player.setAudioSource(audioSource);
       _errorSubject.add(null);
     } catch (e) {
@@ -239,8 +255,9 @@ class MtAudioHandler extends BaseAudioHandler
     int initialIndex = 0,
   }) async {
     try {
+      final resolved = await Future.wait(items.map(_assetResolver.resolveItem));
       await _player.setAudioSources(
-        items.map(_createAudioSource).toList(),
+        resolved.map(_createAudioSource).toList(),
         initialIndex: initialIndex,
       );
       _errorSubject.add(null);
@@ -271,7 +288,8 @@ class MtAudioHandler extends BaseAudioHandler
 
   /// Adds an audio item to the end of the queue.
   Future<void> addAudioItem(MtAudioItem item) async {
-    await _player.addAudioSource(_createAudioSource(item));
+    final resolved = await _assetResolver.resolveItem(item);
+    await _player.addAudioSource(_createAudioSource(resolved));
   }
 
   /// Inserts an audio item at the specified index.
@@ -279,7 +297,8 @@ class MtAudioHandler extends BaseAudioHandler
     final sourceIndex = _effectiveToSourceIndex(index, allowEnd: true);
     if (sourceIndex == null) return;
 
-    await _player.insertAudioSource(sourceIndex, _createAudioSource(item));
+    final resolved = await _assetResolver.resolveItem(item);
+    await _player.insertAudioSource(sourceIndex, _createAudioSource(resolved));
   }
 
   /// Removes an audio item at the specified index.
@@ -423,6 +442,11 @@ class MtAudioHandler extends BaseAudioHandler
   }
 
   @override
+  Future<void> onTaskRemoved() async {
+    await stop();
+  }
+
+  @override
   Future<void> seek(Duration position) async {
     final targetPosition = _clampToDuration(position);
     _setOptimisticPosition(targetPosition);
@@ -535,6 +559,24 @@ class MtAudioHandler extends BaseAudioHandler
 
   @override
   MtAndroidAutoDelegate get androidAutoDelegate => _androidAutoDelegate;
+
+  @override
+  Future<List<MediaItem>> getChildren(
+    String parentMediaId, [
+    Map<String, dynamic>? options,
+  ]) async {
+    final items = await super.getChildren(parentMediaId, options);
+    return Future.wait(items.map(_assetResolver.resolveMediaItem));
+  }
+
+  @override
+  Future<List<MediaItem>> search(
+    String query, [
+    Map<String, dynamic>? extras,
+  ]) async {
+    final items = await super.search(query, extras);
+    return Future.wait(items.map(_assetResolver.resolveMediaItem));
+  }
 
   /// Disposes of this handler and releases resources.
   Future<void> dispose() async {

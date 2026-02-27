@@ -23,6 +23,7 @@ dependencies:
   rxdart: ^0.28.0
   equatable: ^2.0.8
   mt_carplay: ^1.2.11
+  path_provider: ^2.1.0
 
 dev_dependencies:
   flutter_test:

@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:mt_audio/src/utils/mt_asset_resolver.dart';
 
 /// Artwork image widget with placeholder and error handling.
 ///
@@ -53,19 +56,61 @@ class MtArtwork extends StatelessWidget {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: Image.network(
-        artworkUri.toString(),
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return placeholder ?? defaultPlaceholder;
-        },
-        errorBuilder: (context, error, stackTrace) {
-          return errorWidget ?? defaultPlaceholder;
-        },
+      child: _buildImage(
+        artworkUri!,
+        placeholder: placeholder ?? defaultPlaceholder,
+        errorWidget: errorWidget ?? defaultPlaceholder,
       ),
+    );
+  }
+
+  Widget _buildImage(
+    Uri uri, {
+    required Widget placeholder,
+    required Widget errorWidget,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final pixelSize = (size * MediaQuery.devicePixelRatioOf(context))
+            .ceil();
+
+        return switch (uri.scheme) {
+          'asset' => Image.asset(
+            MtAssetResolver.assetKey(uri),
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            cacheWidth: pixelSize,
+            cacheHeight: pixelSize,
+            gaplessPlayback: true,
+            errorBuilder: (context, error, stackTrace) => errorWidget,
+          ),
+          'file' => Image.file(
+            File(uri.toFilePath()),
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            cacheWidth: pixelSize,
+            cacheHeight: pixelSize,
+            gaplessPlayback: true,
+            errorBuilder: (context, error, stackTrace) => errorWidget,
+          ),
+          _ => Image.network(
+            uri.toString(),
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            cacheWidth: pixelSize,
+            cacheHeight: pixelSize,
+            gaplessPlayback: true,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return placeholder;
+            },
+            errorBuilder: (context, error, stackTrace) => errorWidget,
+          ),
+        };
+      },
     );
   }
 }

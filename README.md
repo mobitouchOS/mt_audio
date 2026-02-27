@@ -6,9 +6,16 @@
 ![Stability](https://img.shields.io/badge/stability-beta-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-A stream-based audio module for Flutter. Provides background playback, system notifications, queue management, and first-class **Android Auto** & **Apple CarPlay** support -- all behind a single facade class and zero external state management dependencies.
-
-This package reduces implementation overhead when combining packages such as `just_audio` and `audio_service`. It provides a simple wrapper API that captures our long-standing Flutter audio expertise in a single dependency.
+A stream-based audio module for Flutter that delivers **background playback**, **system notifications**, **queue management**, and **first-class Android Auto & Apple CarPlay support** — all behind a single facade API and **zero external state management dependencies**.
+ 
+Built on top of `just_audio` + `audio_service`, mt_audio reduces the glue code and implementation overhead, packaging our production Flutter audio know-how into one dependency.
+ 
+### Use cases
+- Podcast & talk apps (episode queues, resume, skip)
+- Online radio / live streams (background playback, simple controls)
+- Audiobooks (long-form playback, chapters as queue, progress)
+- Learning & courses (lesson playlists, quick navigation)
+- Any app that needs reliable background audio with minimal setup
 
 <p align="center">
   <img src="assets/home.png" width="220" alt="Now Playing" />
