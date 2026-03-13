@@ -25,6 +25,13 @@ dependencies:
   mt_carplay: ^1.2.11
   path_provider: ^2.1.0
 
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.mobitouchos.mt_audio
+        pluginClass: MtAudioPlugin
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

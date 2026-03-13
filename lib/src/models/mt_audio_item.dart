@@ -25,6 +25,7 @@ class MtAudioItem extends Equatable {
     final extras = mediaItem.extras ?? {};
     final uriString = extras['uri'] as String?;
     final isLive = extras['isLive'] as bool? ?? false;
+    final artworkUriString = extras['_artworkUri'] as String?;
     final headers = switch (extras['headers']) {
       final Map<dynamic, dynamic> rawHeaders => rawHeaders.map(
         (key, value) => MapEntry(key.toString(), value.toString()),
@@ -36,7 +37,8 @@ class MtAudioItem extends Equatable {
     final cleanExtras = Map<String, dynamic>.from(extras)
       ..remove('uri')
       ..remove('isLive')
-      ..remove('headers');
+      ..remove('headers')
+      ..remove('_artworkUri');
 
     return MtAudioItem(
       id: mediaItem.id,
@@ -44,7 +46,9 @@ class MtAudioItem extends Equatable {
       title: mediaItem.title,
       artist: mediaItem.artist,
       album: mediaItem.album,
-      artworkUri: mediaItem.artUri,
+      artworkUri: artworkUriString != null
+          ? Uri.parse(artworkUriString)
+          : mediaItem.artUri,
       duration: mediaItem.duration,
       isLive: isLive,
       extras: cleanExtras.isEmpty ? null : cleanExtras,
@@ -97,6 +101,7 @@ class MtAudioItem extends Equatable {
         'uri': uri.toString(),
         'isLive': isLive,
         if (headers != null) 'headers': headers,
+        if (artworkUri != null) '_artworkUri': artworkUri.toString(),
       },
     );
   }

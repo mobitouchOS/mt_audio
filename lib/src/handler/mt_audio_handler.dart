@@ -273,9 +273,17 @@ class MtAudioHandler extends BaseAudioHandler
   }
 
   AudioSource _createAudioSource(MtAudioItem item) {
+    var mediaItem = item.toMediaItem();
+    // Replace file:// artUri with content:// for Android Auto (cross-process).
+    // Returns null for non-file URIs (network, or already content:// during reorder),
+    // leaving the artUri unchanged in those cases.
+    final contentUri = _assetResolver.toContentUri(mediaItem.artUri);
+    if (contentUri != null) {
+      mediaItem = mediaItem.copyWith(artUri: contentUri);
+    }
     return AudioSource.uri(
       item.uri,
-      tag: item.toMediaItem(),
+      tag: mediaItem,
       headers: item.headers,
     );
   }
@@ -566,7 +574,9 @@ class MtAudioHandler extends BaseAudioHandler
     Map<String, dynamic>? options,
   ]) async {
     final items = await super.getChildren(parentMediaId, options);
-    return Future.wait(items.map(_assetResolver.resolveMediaItem));
+    return Future.wait(
+      items.map(_assetResolver.resolveMediaItemForExternalAccess),
+    );
   }
 
   @override
@@ -575,7 +585,9 @@ class MtAudioHandler extends BaseAudioHandler
     Map<String, dynamic>? extras,
   ]) async {
     final items = await super.search(query, extras);
-    return Future.wait(items.map(_assetResolver.resolveMediaItem));
+    return Future.wait(
+      items.map(_assetResolver.resolveMediaItemForExternalAccess),
+    );
   }
 
   /// Disposes of this handler and releases resources.

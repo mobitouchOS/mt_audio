@@ -1,0 +1,13 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.mobitouchos.mt_audio">
+
+    <application>
+        <!-- Exported so Android Auto (separate process) can resolve artwork URIs.
+             Only serves non-sensitive artwork from the sandboxed cache directory. -->
+        <provider
+            android:name="com.mobitouchos.mt_audio.MtAudioArtworkProvider"
+            android:authorities="${applicationId}.mt_audio.artwork"
+            android:exported="true"
+            android:grantUriPermissions="false" />
+    </application>
+</manifest>

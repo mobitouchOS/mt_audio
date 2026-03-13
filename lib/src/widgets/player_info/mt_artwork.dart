@@ -81,7 +81,6 @@ class MtArtwork extends StatelessWidget {
             height: size,
             fit: BoxFit.cover,
             cacheWidth: pixelSize,
-            cacheHeight: pixelSize,
             gaplessPlayback: true,
             errorBuilder: (context, error, stackTrace) => errorWidget,
           ),
@@ -91,7 +90,6 @@ class MtArtwork extends StatelessWidget {
             height: size,
             fit: BoxFit.cover,
             cacheWidth: pixelSize,
-            cacheHeight: pixelSize,
             gaplessPlayback: true,
             errorBuilder: (context, error, stackTrace) => errorWidget,
           ),
@@ -101,7 +99,6 @@ class MtArtwork extends StatelessWidget {
             height: size,
             fit: BoxFit.cover,
             cacheWidth: pixelSize,
-            cacheHeight: pixelSize,
             gaplessPlayback: true,
             loadingBuilder: (context, child, loadingProgress) {
               if (loadingProgress == null) return child;
