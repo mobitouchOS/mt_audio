@@ -132,7 +132,7 @@ class MtAudioHandler extends BaseAudioHandler
         controls: controls,
         systemActions: _getSystemActions(isLive: isLive),
         androidCompactActionIndices: List.generate(
-          controls.length.clamp(0, 3),
+          controls.length.clamp(0, 3).toInt(),
           (i) => i,
         ),
         processingState: _mapProcessingState(processingState),
