@@ -30,7 +30,8 @@ class MtAudioArtworkProvider : ContentProvider() {
         val file = File(context.cacheDir, "mt_audio_assets/$assetKey")
 
         // Prevent path traversal by ensuring the resolved path stays within the cache.
-        val cacheBase = File(context.cacheDir, "mt_audio_assets").canonicalPath
+        // The trailing separator stops prefixes like `${cacheBase}_evil/...` slipping past.
+        val cacheBase = File(context.cacheDir, "mt_audio_assets").canonicalPath + File.separator
         if (!file.canonicalPath.startsWith(cacheBase)) return null
 
         if (!file.exists()) return null
