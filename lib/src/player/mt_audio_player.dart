@@ -12,6 +12,7 @@ import 'package:mt_audio/src/models/mt_position_state.dart';
 import 'package:mt_audio/src/models/mt_queue_state.dart';
 import 'package:mt_audio/src/player/mt_audio_player_config.dart';
 import 'package:mt_audio/src/session/mt_audio_session_manager.dart';
+import 'package:mt_audio/src/utils/mt_asset_resolver.dart';
 import 'package:rxdart/rxdart.dart';
 
 /// Main public API for the mt_audio package.
@@ -60,10 +61,14 @@ class MtAudioPlayer {
   static Future<MtAudioPlayer> init({
     required MtAudioPlayerConfig config,
   }) async {
+    // Initialize asset resolver for extracting asset:/// artwork to file://
+    final assetResolver = await MtAssetResolver.init();
+
     // Create handler - includes Android Auto mixin; the AA mixin methods
     // are harmless on iOS (never called by the system) and return safe defaults
     // when unbound.
     final handler = MtAudioHandler(
+      assetResolver: assetResolver,
       ffRewindInterval: config.ffRewindInterval,
     );
 
@@ -77,7 +82,7 @@ class MtAudioPlayer {
             config.notificationIcon ?? 'mipmap/ic_launcher',
         androidShowNotificationBadge: true,
         preloadArtwork: true,
-        androidNotificationOngoing: true,
+        androidNotificationOngoing: config.androidNotificationOngoing,
         fastForwardInterval: config.ffRewindInterval,
         rewindInterval: config.ffRewindInterval,
       ),

@@ -47,6 +47,7 @@ class MtAudioPlayerConfig {
     this.carPlayDelegateFactory,
     this.androidAutoDelegateFactory,
     this.handleInterruptions = true,
+    this.androidNotificationOngoing = false,
   });
 
   /// Notification channel ID for Android.
@@ -91,4 +92,10 @@ class MtAudioPlayerConfig {
   ///
   /// Defaults to true.
   final bool handleInterruptions;
+
+  /// Whether the Android notification should be ongoing (non-dismissible).
+  ///
+  /// When false (the default), the notification can be dismissed when paused.
+  /// Set to true to keep the notification persistent at all times.
+  final bool androidNotificationOngoing;
 }
