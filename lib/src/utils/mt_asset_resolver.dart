@@ -35,8 +35,9 @@ class MtAssetResolver {
     String? authority;
     if (Platform.isAndroid) {
       try {
-        authority =
-            await _channel.invokeMethod<String>('getContentProviderAuthority');
+        authority = await _channel.invokeMethod<String>(
+          'getContentProviderAuthority',
+        );
       } on MissingPluginException {
         debugPrint(
           'mt_audio: MtAudioPlugin not registered; '
