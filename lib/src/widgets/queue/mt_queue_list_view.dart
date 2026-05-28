@@ -85,12 +85,8 @@ class MtQueueListView extends StatelessWidget {
         if (enableReorder) {
           return ReorderableListView.builder(
             itemCount: queueState.queue.length,
-            onReorder: (oldIndex, newIndex) {
-              var adjustedNewIndex = newIndex;
-              if (oldIndex < newIndex) {
-                adjustedNewIndex -= 1;
-              }
-              unawaited(player.reorderQueue(oldIndex, adjustedNewIndex));
+            onReorderItem: (oldIndex, newIndex) {
+              unawaited(player.reorderQueue(oldIndex, newIndex));
             },
             itemBuilder: (context, index) {
               final item = queueState.queue[index];

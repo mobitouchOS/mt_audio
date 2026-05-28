@@ -97,7 +97,7 @@ class MtAudioItem extends Equatable {
       duration: duration,
       isLive: isLive,
       extras: {
-        if (extras != null) ...extras!,
+        ...?extras,
         'uri': uri.toString(),
         'isLive': isLive,
         if (headers != null) 'headers': headers,
