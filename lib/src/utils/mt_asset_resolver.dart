@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:mt_audio/src/models/mt_audio_item.dart';
 import 'package:path_provider/path_provider.dart';
@@ -37,7 +38,13 @@ class MtAssetResolver {
         authority =
             await _channel.invokeMethod<String>('getContentProviderAuthority');
       } on MissingPluginException {
-        // Plugin not registered — content:// URIs won't be available.
+        debugPrint(
+          'mt_audio: MtAudioPlugin not registered; '
+          'asset:// artwork will fall back to file:// URIs that Android Auto '
+          "cannot read across processes. Artwork won't appear on Android Auto. "
+          'Ensure the plugin is registered (rerun `flutter pub get` and a '
+          'full rebuild after upgrading mt_audio).',
+        );
       }
     }
 
@@ -116,10 +123,11 @@ class MtAssetResolver {
     );
     final file = File('$_cacheDir/$key');
 
-    // Only write if the cached file is missing or has a different size,
-    // so unchanged assets survive across sessions without redundant I/O.
-    final existingLength = await file.length().onError((_, _) => -1);
-    if (existingLength != bytes.length) {
+    // Skip the write only if the cached file exists AND its bytes match the
+    // bundled asset. Length alone is insufficient — a same-size update (e.g.
+    // a re-encoded image with identical byte count) would leave stale artwork
+    // in the cache across sessions.
+    if (!await _cachedFileMatches(file, bytes)) {
       await file.parent.create(recursive: true);
       await file.writeAsBytes(bytes);
     }
@@ -127,6 +135,23 @@ class MtAssetResolver {
     final fileUri = Uri.file(file.path);
     _resolved[key] = fileUri;
     return fileUri;
+  }
+
+  Future<bool> _cachedFileMatches(File file, Uint8List bytes) async {
+    final existingLength = await file.length().onError((_, _) => -1);
+    if (existingLength != bytes.length) return false;
+
+    final Uint8List existing;
+    try {
+      existing = await file.readAsBytes();
+    } on FileSystemException {
+      return false;
+    }
+
+    for (var i = 0; i < bytes.length; i++) {
+      if (existing[i] != bytes[i]) return false;
+    }
+    return true;
   }
 
   /// Resolves the artwork URI of an [MtAudioItem].
