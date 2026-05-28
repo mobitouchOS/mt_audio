@@ -62,6 +62,8 @@ class MtTrackSkipButton extends StatelessWidget {
       stream: player.queueStateStream,
       builder: (context, snapshot) {
         final queueState = snapshot.data ?? player.currentQueueState;
+        if (queueState.length <= 1) return const SizedBox.shrink();
+
         final canSkip = isNext ? queueState.hasNext : queueState.hasPrevious;
 
         return IconButton(

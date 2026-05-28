@@ -67,6 +67,17 @@ final sampleTracks = [
     ),
     duration: const Duration(minutes: 5, seconds: 24),
   ),
+  MtAudioItem(
+    id: 'track-asset',
+    uri: Uri.parse(
+      'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
+    ),
+    title: 'SoundHelix Song 4 (Asset Art)',
+    artist: 'T. Schürger',
+    album: 'SoundHelix',
+    artworkUri: Uri.parse('asset:///assets/images/sample_cover.jpg'),
+    duration: const Duration(minutes: 7, seconds: 23),
+  ),
 ];
 
 /// Live radio streams from Public Domain Radio.

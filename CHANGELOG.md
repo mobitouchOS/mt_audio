@@ -1,3 +1,19 @@
+## 0.2.0-beta.4 - 2026-02-27
+
+### Added
+
+- `asset:///` artwork URI support — bundled Flutter assets are automatically extracted to the cache directory for use in system notifications, Android Auto, and CarPlay.
+- `androidNotificationOngoing` option in `MtAudioPlayerConfig` to control whether the Android notification is dismissible when paused (defaults to `false`).
+- `onTaskRemoved` handler to clean up playback when the app is swiped away on Android.
+
+### Changed
+
+- `MtArtwork` widget now supports `asset://` and `file://` URI schemes in addition to network URIs, with resolution-aware image caching (`cacheWidth`/`cacheHeight`) and `gaplessPlayback`.
+
+### Fixed
+
+- Skip previous/next controls are now hidden in both system notifications and the `MtTrackSkipButton` widget when the queue contains a single item.
+
 ## 0.2.0-beta.3 - 2026-02-16
 
 ### Changed
