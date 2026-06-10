@@ -1,3 +1,13 @@
+## 0.2.0-beta.5 - 2026-06-10
+
+### Changed
+
+- Updated `mt_carplay` to `^1.5.0` (adds Android Auto alert/grid/tab-bar, message, and pane templates, `CPSearchTemplate`, and Flutter-asset SVG support).
+
+### Breaking changes
+
+- `mt_carplay` 1.3.0 renamed several CarPlay enums/classes to match Apple's API (e.g. `CPListItemAccessoryTypes` → `CPListItemAccessoryType`). Consumers referencing these `mt_carplay` types directly may need to update their imports.
+
 ## 0.2.0-beta.4 - 2026-02-27
 
 ### Added
