@@ -18,9 +18,15 @@ export 'src/carplay/mt_carplay_delegate.dart';
 export 'src/carplay/mt_carplay_handler.dart';
 export 'src/carplay/mt_carplay_item.dart';
 
+// Lyrics
+export 'src/lyrics/mt_lyrics_controller.dart';
+export 'src/lyrics/mt_lyrics_cursor.dart';
+export 'src/lyrics/mt_lyrics_parser.dart';
+
 // Models
 export 'src/models/mt_audio_error.dart';
 export 'src/models/mt_audio_item.dart';
+export 'src/models/mt_lyrics.dart';
 export 'src/models/mt_media_library_item.dart';
 export 'src/models/mt_playback_state.dart';
 export 'src/models/mt_position_state.dart';
@@ -35,6 +41,9 @@ export 'src/widgets/controls/mt_play_pause_button.dart';
 export 'src/widgets/controls/mt_player_builder.dart';
 export 'src/widgets/controls/mt_skip_button.dart';
 export 'src/widgets/controls/mt_track_skip_button.dart';
+
+// Widgets - Lyrics
+export 'src/widgets/lyrics/mt_lyrics_view.dart';
 
 // Widgets - Player info
 export 'src/widgets/player_info/mt_artwork.dart';

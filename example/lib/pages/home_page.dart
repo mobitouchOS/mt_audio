@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:mt_audio/mt_audio.dart';
 import 'package:mt_audio_example/providers/player_provider.dart';
 import 'package:mt_audio_example/sample_data/sample_data.dart';
+import 'package:mt_audio_example/widgets/lyrics_demo_card.dart';
 
 /// Source type for the player.
 enum SourceType { single, playlist, live }
@@ -124,7 +125,11 @@ class _HomePageState extends State<HomePage> {
               player: player,
               showAlbum: true,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // Lyrics demo
+            LyricsDemoCard(player: player),
+            const SizedBox(height: 16),
 
             // Seek bar (hidden for live streams)
             StreamBuilder(
