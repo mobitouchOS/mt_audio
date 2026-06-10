@@ -22,7 +22,7 @@ dependencies:
   just_audio: ^0.10.5
   rxdart: ^0.28.0
   equatable: ^2.0.8
-  mt_carplay: ^1.2.11
+  mt_carplay: ^1.5.0
   path_provider: ^2.1.0
 
 flutter:
