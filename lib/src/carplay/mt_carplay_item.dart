@@ -100,7 +100,7 @@ final class MtCarPlayBrowsableItem extends MtCarPlayItem {
       text: title,
       detailText: subtitle ?? '',
       image: _cpImageFromUri(imageUri),
-      accessoryType: CPListItemAccessoryTypes.disclosureIndicator,
+      accessoryType: CPListItemAccessoryType.disclosureIndicator,
       onPress: (complete, self) async {
         await onSelect(id).timeout(const Duration(seconds: 5));
         complete();
