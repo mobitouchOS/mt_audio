@@ -29,8 +29,10 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
-      # - name: Run tests
-      #   run: flutter test
+      - name: Run tests
+        # The `network` tag marks tests that fetch real LRC files from
+        # lrclib.net; keep CI hermetic by skipping them.
+        run: flutter test --exclude-tags network
 
       - name: Pub publish dry run
         run: dart pub publish --dry-run
