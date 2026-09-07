@@ -1,3 +1,9 @@
+## Unreleased
+
+### Added
+
+- **Synchronized lyrics (LRC)** — `MtLyricsParser` parses standard and A2-enhanced (word-level) LRC into an `MtLyrics` model, `MtLyricsController` tracks the active line/segment against a position stream, and `MtLyricsBuilder` exposes an `MtLyricsState` for fully custom lyrics UI. The example app shows a scrolling, tap-to-seek lyrics list with karaoke highlighting.
+
 ## 0.2.0-beta.4 - 2026-02-27
 
 ### Added

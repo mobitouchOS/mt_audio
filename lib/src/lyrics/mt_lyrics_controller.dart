@@ -40,10 +40,12 @@ class MtLyricsController {
     required this.lyrics,
     required Stream<Duration> position,
   }) : assert(_isSortedByTimestamp(lyrics), _kSortError) {
-    _subscription = position.map(_cursorAt).listen(
-      _emit,
-      onError: _swallowError,
-    );
+    _subscription = position
+        .map(_cursorAt)
+        .listen(
+          _emit,
+          onError: _swallowError,
+        );
   }
 
   static const String _kSortError =

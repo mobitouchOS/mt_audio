@@ -79,6 +79,9 @@ class MtLyricsLine extends Equatable {
   /// synchronized lyrics.
   final Duration timestamp;
 
+  /// The full text of this line, i.e. all segment texts concatenated.
+  String get text => segments.map((s) => s.text).join();
+
   @override
   List<Object?> get props => [segments, timestamp];
 }

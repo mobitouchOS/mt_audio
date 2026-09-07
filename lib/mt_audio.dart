@@ -43,7 +43,7 @@ export 'src/widgets/controls/mt_skip_button.dart';
 export 'src/widgets/controls/mt_track_skip_button.dart';
 
 // Widgets - Lyrics
-export 'src/widgets/lyrics/mt_lyrics_view.dart';
+export 'src/widgets/lyrics/mt_lyrics_builder.dart';
 
 // Widgets - Player info
 export 'src/widgets/player_info/mt_artwork.dart';

@@ -24,7 +24,7 @@ cd example && flutter run
 cd example && flutter build ios --debug
 ```
 
-There are no tests, code generation, or build_runner steps in this module.
+Tests live in `test/`. The parser suite tagged `network` fetches real LRC files from lrclib.net; exclude it with `flutter test --exclude-tags network`. There is no code generation or build_runner step.
 
 ## Architecture
 

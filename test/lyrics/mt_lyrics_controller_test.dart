@@ -65,7 +65,10 @@ void main() {
     });
 
     test('hasLine reflects lineIndex >= 0', () {
-      expect(const MtLyricsCursor(lineIndex: 0, segmentIndex: 0).hasLine, isTrue);
+      expect(
+        const MtLyricsCursor(lineIndex: 0, segmentIndex: 0).hasLine,
+        isTrue,
+      );
       expect(MtLyricsCursor.empty.hasLine, isFalse);
     });
   });
@@ -93,7 +96,9 @@ void main() {
     });
 
     test('advances to next line as position crosses boundary', () async {
-      final driver = _Driver(_lyrics([_line(10, 'a'), _line(20, 'b'), _line(30, 'c')]));
+      final driver = _Driver(
+        _lyrics([_line(10, 'a'), _line(20, 'b'), _line(30, 'c')]),
+      );
       expect((await driver.push(const Duration(seconds: 15))).lineIndex, 0);
       expect((await driver.push(const Duration(seconds: 20))).lineIndex, 1);
       expect((await driver.push(const Duration(seconds: 25))).lineIndex, 1);
@@ -102,7 +107,9 @@ void main() {
     });
 
     test('handles seek backwards', () async {
-      final driver = _Driver(_lyrics([_line(10, 'a'), _line(20, 'b'), _line(30, 'c')]));
+      final driver = _Driver(
+        _lyrics([_line(10, 'a'), _line(20, 'b'), _line(30, 'c')]),
+      );
       await driver.push(const Duration(seconds: 30));
       expect(driver.controller.cursor.lineIndex, 2);
       final back = await driver.push(const Duration(seconds: 5));
@@ -126,7 +133,10 @@ void main() {
 
     test('single line is always selected once we cross it', () async {
       final driver = _Driver(_lyrics([_line(5, 'only')]));
-      expect(await driver.push(const Duration(seconds: 4)), equals(MtLyricsCursor.empty));
+      expect(
+        await driver.push(const Duration(seconds: 4)),
+        equals(MtLyricsCursor.empty),
+      );
       expect((await driver.push(const Duration(seconds: 5))).lineIndex, 0);
       expect((await driver.push(const Duration(seconds: 500))).lineIndex, 0);
       await driver.dispose();
@@ -168,26 +178,29 @@ void main() {
       await driver.dispose();
     });
 
-    test('A2 line with later first segment: segmentIndex is -1 until segment starts', () async {
-      final line = MtLyricsLine(
-        timestamp: const Duration(seconds: 10),
-        segments: [_seg(12, 'a'), _seg(15, 'b')],
-      );
-      final driver = _Driver(_lyrics([line]));
+    test(
+      'A2 line with later first segment: segmentIndex is -1 until segment starts',
+      () async {
+        final line = MtLyricsLine(
+          timestamp: const Duration(seconds: 10),
+          segments: [_seg(12, 'a'), _seg(15, 'b')],
+        );
+        final driver = _Driver(_lyrics([line]));
 
-      var c = await driver.push(const Duration(seconds: 11));
-      expect(c.lineIndex, 0);
-      expect(c.segmentIndex, -1);
-      expect(driver.controller.currentSegment, isNull);
+        var c = await driver.push(const Duration(seconds: 11));
+        expect(c.lineIndex, 0);
+        expect(c.segmentIndex, -1);
+        expect(driver.controller.currentSegment, isNull);
 
-      c = await driver.push(const Duration(seconds: 12));
-      expect(c.segmentIndex, 0);
+        c = await driver.push(const Duration(seconds: 12));
+        expect(c.segmentIndex, 0);
 
-      c = await driver.push(const Duration(seconds: 15));
-      expect(c.segmentIndex, 1);
+        c = await driver.push(const Duration(seconds: 15));
+        expect(c.segmentIndex, 1);
 
-      await driver.dispose();
-    });
+        await driver.dispose();
+      },
+    );
 
     test('single-segment A2 line respects the precondition guard', () async {
       final line = MtLyricsLine(
@@ -228,36 +241,45 @@ void main() {
   });
 
   group('offset', () {
-    test('positive offset shifts lookup forward (lyrics appear earlier)', () async {
-      // Lines at 10s, 20s. With offsetMs=+2000, lookup at position 8s should
-      // resolve to line 0 because 8s + 2s = 10s.
-      final driver = _Driver(
-        _lyrics([_line(10, 'a'), _line(20, 'b')]),
-        offsetMs: 2000,
-      );
-      expect((await driver.push(const Duration(seconds: 8))).lineIndex, 0);
-      expect(
-        (await driver.push(const Duration(seconds: 17))).lineIndex,
-        0,
-      );
-      expect(
-        (await driver.push(const Duration(seconds: 18))).lineIndex,
-        1,
-      );
-      await driver.dispose();
-    });
+    test(
+      'positive offset shifts lookup forward (lyrics appear earlier)',
+      () async {
+        // Lines at 10s, 20s. With offsetMs=+2000, lookup at position 8s should
+        // resolve to line 0 because 8s + 2s = 10s.
+        final driver = _Driver(
+          _lyrics([_line(10, 'a'), _line(20, 'b')]),
+          offsetMs: 2000,
+        );
+        expect((await driver.push(const Duration(seconds: 8))).lineIndex, 0);
+        expect(
+          (await driver.push(const Duration(seconds: 17))).lineIndex,
+          0,
+        );
+        expect(
+          (await driver.push(const Duration(seconds: 18))).lineIndex,
+          1,
+        );
+        await driver.dispose();
+      },
+    );
 
-    test('negative offset shifts lookup backward (lyrics appear later)', () async {
-      final driver = _Driver(
-        _lyrics([_line(10, 'a'), _line(20, 'b')]),
-        offsetMs: -2000,
-      );
-      // Position 10s + (-2s) = 8s, before line 0 → empty.
-      expect(await driver.push(const Duration(seconds: 10)), equals(MtLyricsCursor.empty));
-      // Position 12s + (-2s) = 10s → line 0.
-      expect((await driver.push(const Duration(seconds: 12))).lineIndex, 0);
-      await driver.dispose();
-    });
+    test(
+      'negative offset shifts lookup backward (lyrics appear later)',
+      () async {
+        final driver = _Driver(
+          _lyrics([_line(10, 'a'), _line(20, 'b')]),
+          offsetMs: -2000,
+        );
+        // Position 10s + (-2s) = 8s, before line 0 → empty.
+        expect(
+          await driver.push(const Duration(seconds: 10)),
+          equals(MtLyricsCursor.empty),
+        );
+        // Position 12s + (-2s) = 10s → line 0.
+        expect((await driver.push(const Duration(seconds: 12))).lineIndex, 0);
+        await driver.dispose();
+      },
+    );
   });
 
   group('lifecycle', () {

@@ -33,6 +33,7 @@ Built on top of `just_audio` + `audio_service`, mt_audio reduces the glue code a
 - **Playback speed** control (0.5x - 2.0x)
 - **Repeat modes** - off, one, all
 - **Live stream** support with ICY metadata
+- **Synchronized lyrics** - LRC / A2 parser, position-tracking controller, and a builder for custom lyrics UI
 - **Android Auto** integration via delegate pattern
 - **Apple CarPlay** integration with list, grid, and tab bar templates
 - **Pre-built widgets** - seek bar, play/pause, skip, speed selector, queue list, artwork, now playing info, and a full player builder
@@ -520,6 +521,47 @@ MtPlayerBuilder(
 ```
 
 `MtPlayerState` exposes: `playbackState`, `positionState`, `queueState`, `currentItem`, `speed`, `isPlaying`, `isPaused`, `isLoading`, `position`, `duration`, `progress`.
+
+---
+
+## Lyrics (LRC)
+
+`mt_audio` ships an LRC parser, a controller that follows playback, and a builder widget. Lyrics are decoupled from `MtAudioItem`: you fetch or bundle the LRC text yourself and create one controller per track.
+
+```dart
+// 1. Parse. Standard `[mm:ss.xx]` lines and A2 `<mm:ss.xx>` word markers
+//    are both supported, along with ti/ar/al/au/lr/by/length/offset tags.
+final lyrics = MtLyricsParser.parse(lrcText);
+
+// 2. Track playback. The controller applies the `[offset:]` tag for you and
+//    emits an MtLyricsCursor only when the line or segment changes.
+final lyricsController = MtLyricsController(
+  lyrics: lyrics,
+  position: player.positionStateStream.map((s) => s.position),
+);
+
+// 3. Render whatever you like.
+MtLyricsBuilder(
+  controller: lyricsController,
+  builder: (context, state) {
+    return ListView.builder(
+      itemCount: state.lines.length,
+      itemBuilder: (context, i) => ListTile(
+        title: Text(state.lines[i].text),
+        selected: state.isActiveLine(i),
+        onTap: () => player.seekTo(state.lines[i].timestamp),
+      ),
+    );
+  },
+)
+
+// 4. Dispose with the widget / track.
+await lyricsController.dispose();
+```
+
+`MtLyricsState` exposes: `lyrics`, `lines`, `cursor`, `lineIndex`, `segmentIndex`, `hasLine`, `currentLine`, `currentSegment`, `isActiveLine(i)`, `isActiveSegment(i)`.
+
+For karaoke-style highlighting, iterate `state.currentLine!.segments` and style index `state.segmentIndex` differently. See `LyricsDemoCard` in the example app for a scrolling list that auto-centers the active line.
 
 ---
 

@@ -1,0 +1,5 @@
+tags:
+  # Tests that fetch real LRC files from lrclib.net. Exclude with:
+  #   flutter test --exclude-tags network
+  network:
+    timeout: 2x
