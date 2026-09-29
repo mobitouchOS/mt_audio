@@ -8,7 +8,7 @@ import 'package:mt_audio/src/models/mt_media_library_item.dart';
 ///
 /// Example:
 /// ```dart
-/// class MyAndroidAutoDelegate implements MtAndroidAutoDelegate {
+/// class MyAndroidAutoDelegate extends MtAndroidAutoDelegate {
 ///   MyAndroidAutoDelegate({required this.player});
 ///   final MtAudioPlayer player;
 ///
@@ -34,6 +34,14 @@ import 'package:mt_audio/src/models/mt_media_library_item.dart';
 ///   @override
 ///   Future<List<MtAudioItem>> search(String query) async {
 ///     return await repository.searchTracks(query);
+///   }
+///
+///   @override
+///   Future<void> onPlayFromSearch(String query) async {
+///     final matches = await repository.searchTracks(query);
+///     if (matches.isEmpty) return;
+///     await player.setAudioItem(matches.first);
+///     await player.play();
 ///   }
 /// }
 /// ```

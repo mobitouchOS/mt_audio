@@ -528,7 +528,7 @@ MtPlayerBuilder(
 ### 1. Implement the delegate
 
 ```dart
-class MyAndroidAutoDelegate implements MtAndroidAutoDelegate {
+class MyAndroidAutoDelegate extends MtAndroidAutoDelegate {
   MyAndroidAutoDelegate({required this.player});
   final MtAudioPlayer player;
 
@@ -561,6 +561,14 @@ class MyAndroidAutoDelegate implements MtAndroidAutoDelegate {
   }
 
   @override
+  Future<void> onPlayFromSearch(String query) async {
+    final matches = await search(query);
+    if (matches.isEmpty) return;
+    await player.setAudioItem(matches.first);
+    await player.play();
+  }
+
+  @override
   void onConnect() {}
 
   @override
@@ -588,6 +596,26 @@ final player = await MtAudioPlayer.init(
         MyAndroidAutoDelegate(player: player),
   ),
 );
+```
+
+### 3. Errors and refresh
+
+Show a sign-in / premium / app error on Android Auto until playback starts:
+
+```dart
+player.setAndroidAutoError(
+  const MtAndroidAutoError(
+    code: MtAndroidAutoErrorCode.premiumAccountRequired,
+    message: 'Available with Premium. Details in the phone app.',
+  ),
+);
+// player.setAndroidAutoError(null); // clear it once resolved
+```
+
+Ask Android Auto to reload a browse node after your data changes (defaults to the root):
+
+```dart
+player.notifyAndroidAutoChildrenChanged();
 ```
 
 ---
