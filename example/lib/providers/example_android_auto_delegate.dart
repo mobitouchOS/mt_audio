@@ -22,10 +22,24 @@ class ExampleAndroidAutoDelegate implements MtAndroidAutoDelegate {
   /// Media ID for the Live Radio category.
   static const liveRadioId = 'live';
 
+  /// Flip to see Android Auto's error surface on the Desktop Head Unit.
+  static bool showPremiumError = false;
+
   @override
   Future<List<MtMediaLibraryItem>> getChildren(String? parentMediaId) async {
     // Root level - return categories
     if (parentMediaId == null || parentMediaId == rootId) {
+      if (showPremiumError) {
+        player.setAndroidAutoError(
+          const MtAndroidAutoError(
+            code: MtAndroidAutoErrorCode.premiumAccountRequired,
+            message: 'Available with Premium. Details in the phone app.',
+          ),
+        );
+        return const [];
+      }
+      player.setAndroidAutoError(null);
+
       return const [
         MtBrowsableItem(id: songsId, title: 'Songs'),
         MtBrowsableItem(id: liveRadioId, title: 'Live Radio'),
