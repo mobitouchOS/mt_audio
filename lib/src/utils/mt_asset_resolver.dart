@@ -160,10 +160,22 @@ class MtAssetResolver {
       try {
         final file = File('$_cacheDir/$key');
         if (!file.existsSync()) {
+          // Write through a sibling `.part` file and rename it onto the
+          // target so a process death mid-write (routine on Android)
+          // never leaves a truncated file at `file.path` — the target is
+          // atomic-or-absent, so a bare `existsSync()` cache-hit check
+          // above stays safe. Clear any `.part` left by a previous crash
+          // before writing a fresh one.
+          final partFile = File('${file.path}.part');
+          if (partFile.existsSync()) await partFile.delete();
           final bytes = await _fetch(uri);
           await file.parent.create(recursive: true);
-          await file.writeAsBytes(bytes, flush: true);
+          await partFile.writeAsBytes(bytes, flush: true);
+          await partFile.rename(file.path);
         }
+        // Remote keys are only ever checked with `containsKey` (above) —
+        // the value stored here is the cached file's `file://` URI, not
+        // the `content://` URI returned to callers.
         _resolved[key] = Uri.file(file.path);
         return contentUri;
       } on Object catch (error) {

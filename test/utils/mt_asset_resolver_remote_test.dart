@@ -67,4 +67,33 @@ void main() {
       expect(fetched, isEmpty);
     },
   );
+
+  test(
+    'recovers from a truncated .part file left by a crashed download',
+    () async {
+      // Learn the deterministic on-disk path for this URL using a
+      // throwaway resolver, then delete the target it wrote so only a
+      // stale `.part` remains — as if a previous process died mid-write.
+      final learner = resolver();
+      final learned = await learner.resolveMediaItemForExternalAccess(
+        item('https://cdn.test/c.jpg'),
+      );
+      final targetFile = File('${cache.path}${learned.artUri!.path}');
+      final partFile = File('${targetFile.path}.part');
+      targetFile.deleteSync();
+      partFile.writeAsStringSync('garbage');
+
+      // A fresh resolver over the same cache directory simulates a new
+      // process: its in-memory caches are empty, so it must consult disk.
+      fetched.clear();
+      final resolved = await resolver().resolveMediaItemForExternalAccess(
+        item('https://cdn.test/c.jpg'),
+      );
+
+      expect(fetched, hasLength(1));
+      expect(resolved.artUri, learned.artUri);
+      expect(targetFile.readAsBytesSync(), [1, 2, 3]);
+      expect(partFile.existsSync(), isFalse);
+    },
+  );
 }
