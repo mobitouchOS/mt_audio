@@ -13,22 +13,6 @@ const _channel = MethodChannel('com.mobitouchos.mt_audio/artwork');
 /// Downloads remote artwork bytes; injectable for tests.
 typedef MtRemoteArtworkFetcher = Future<Uint8List> Function(Uri uri);
 
-Future<Uint8List> _httpFetch(Uri uri) async {
-  final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
-  try {
-    final request = await client.getUrl(uri);
-    final response = await request.close();
-    if (response.statusCode != HttpStatus.ok) {
-      throw HttpException('HTTP ${response.statusCode}', uri: uri);
-    }
-    final builder = BytesBuilder(copy: false);
-    await response.forEach(builder.add);
-    return builder.takeBytes();
-  } finally {
-    client.close();
-  }
-}
-
 /// Internal utility that resolves `asset:///` URIs to `file://` URIs
 /// by extracting assets from the Flutter bundle to the cache directory.
 ///
@@ -39,7 +23,9 @@ class MtAssetResolver {
     this._cacheDir,
     this._contentAuthority, {
     MtRemoteArtworkFetcher? fetch,
-  }) : _fetch = fetch ?? _httpFetch;
+    Duration remoteFetchTimeout = const Duration(seconds: 10),
+  }) : _injectedFetch = fetch,
+       _remoteFetchTimeout = remoteFetchTimeout;
 
   /// A resolver over an explicit cache directory, for tests.
   @visibleForTesting
@@ -47,13 +33,31 @@ class MtAssetResolver {
     required String cacheDir,
     String? contentAuthority,
     MtRemoteArtworkFetcher? fetch,
-  }) => MtAssetResolver._(cacheDir, contentAuthority, fetch: fetch);
+    Duration remoteFetchTimeout = const Duration(seconds: 10),
+  }) => MtAssetResolver._(
+    cacheDir,
+    contentAuthority,
+    fetch: fetch,
+    remoteFetchTimeout: remoteFetchTimeout,
+  );
 
   final String _cacheDir;
   final String? _contentAuthority;
-  final MtRemoteArtworkFetcher _fetch;
+  final MtRemoteArtworkFetcher? _injectedFetch;
+
+  /// Upper bound for one remote artwork download. Android Auto browse and
+  /// search results wait for every item's artwork, so a stalled server
+  /// must cost one late cover, not the whole list.
+  final Duration _remoteFetchTimeout;
   final Map<String, Uri> _resolved = {};
   final Map<String, Future<Uri>> _inFlight = {};
+
+  /// Shared by every remote download: a browse list of ~100 covers from one
+  /// CDN reuses a few keep-alive connections instead of opening a client
+  /// (and a socket) per item.
+  late final HttpClient _httpClient = HttpClient()
+    ..connectionTimeout = _remoteFetchTimeout
+    ..maxConnectionsPerHost = 6;
 
   /// Initializes the resolver with a cache directory.
   ///
@@ -168,7 +172,9 @@ class MtAssetResolver {
           // before writing a fresh one.
           final partFile = File('${file.path}.part');
           if (partFile.existsSync()) await partFile.delete();
-          final bytes = await _fetch(uri);
+          final bytes = await (_injectedFetch ?? _httpFetch)(
+            uri,
+          ).timeout(_remoteFetchTimeout);
           await file.parent.create(recursive: true);
           await partFile.writeAsBytes(bytes, flush: true);
           await partFile.rename(file.path);
@@ -190,6 +196,48 @@ class MtAssetResolver {
       return await future;
     } finally {
       unawaited(_inFlight.remove(key));
+    }
+  }
+
+  /// Downloads [uri] over the shared client within [_remoteFetchTimeout],
+  /// counted from the call so time queued for a free connection counts too.
+  ///
+  /// Past the deadline the connection is destroyed, not merely abandoned:
+  /// `abort` ends a request still waiting for its headers, and cancelling a
+  /// half-read body closes its socket (the client never pools it), so a
+  /// stalled server cannot pin one of the shared connections.
+  Future<Uint8List> _httpFetch(Uri uri) async {
+    final started = Stopwatch()..start();
+    final request = await _httpClient.getUrl(uri);
+    final bytes = Completer<Uint8List>();
+    StreamSubscription<List<int>>? body;
+    final deadline = Timer(_remoteFetchTimeout - started.elapsed, () {
+      final error = TimeoutException(
+        'artwork download timed out',
+        _remoteFetchTimeout,
+      );
+      request.abort(error);
+      if (body == null || bytes.isCompleted) return;
+      unawaited(body.cancel());
+      bytes.completeError(error);
+    });
+    try {
+      final response = await request.close();
+      if (response.statusCode != HttpStatus.ok) {
+        // Cancelling the unread body releases the connection.
+        await response.listen(null).cancel();
+        throw HttpException('HTTP ${response.statusCode}', uri: uri);
+      }
+      final builder = BytesBuilder(copy: false);
+      body = response.listen(
+        builder.add,
+        onError: bytes.completeError,
+        onDone: () => bytes.complete(builder.takeBytes()),
+        cancelOnError: true,
+      );
+      return await bytes.future;
+    } finally {
+      deadline.cancel();
     }
   }
 
