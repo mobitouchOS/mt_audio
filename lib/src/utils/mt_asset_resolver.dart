@@ -154,7 +154,11 @@ class MtAssetResolver {
 
     final key = 'remote/${_stableHash(uri.toString())}';
     final cached = _resolved[key];
-    if (cached != null) return toContentUri(cached) ?? uri;
+    // The OS may evict the cache directory while the app runs; a missing
+    // file falls through to a fresh download.
+    if (cached != null && File.fromUri(cached).existsSync()) {
+      return toContentUri(cached) ?? uri;
+    }
 
     final inFlight = _inFlight[key];
     if (inFlight != null) return inFlight;

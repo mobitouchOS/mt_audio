@@ -6,7 +6,7 @@ import 'package:mt_audio_example/sample_data/sample_data.dart';
 /// Provides a browsable media hierarchy with two categories:
 /// - Songs: Sample MP3 tracks
 /// - Live Radio: Live streaming stations
-class ExampleAndroidAutoDelegate implements MtAndroidAutoDelegate {
+class ExampleAndroidAutoDelegate extends MtAndroidAutoDelegate {
   /// Creates an [ExampleAndroidAutoDelegate].
   ExampleAndroidAutoDelegate({required this.player});
 

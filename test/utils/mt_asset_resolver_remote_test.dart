@@ -113,6 +113,22 @@ void main() {
     },
   );
 
+  test('downloads again when the OS evicted the cached file', () async {
+    final r = resolver();
+    final first = await r.resolveMediaItemForExternalAccess(
+      item('https://cdn.test/a.jpg'),
+    );
+    final file = File('${cache.path}${first.artUri!.path}')..deleteSync();
+
+    final second = await r.resolveMediaItemForExternalAccess(
+      item('https://cdn.test/a.jpg'),
+    );
+
+    expect(fetched, hasLength(2));
+    expect(second.artUri, first.artUri);
+    expect(file.existsSync(), isTrue);
+  });
+
   test('reuses the cached file in a fresh process', () async {
     final first = await resolver().resolveMediaItemForExternalAccess(
       item('https://cdn.test/a.jpg'),
