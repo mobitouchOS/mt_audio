@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/foundation.dart';
@@ -9,16 +10,48 @@ import 'package:path_provider/path_provider.dart';
 
 const _channel = MethodChannel('com.mobitouchos.mt_audio/artwork');
 
+/// Downloads remote artwork bytes; injectable for tests.
+typedef MtRemoteArtworkFetcher = Future<Uint8List> Function(Uri uri);
+
+Future<Uint8List> _httpFetch(Uri uri) async {
+  final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
+  try {
+    final request = await client.getUrl(uri);
+    final response = await request.close();
+    if (response.statusCode != HttpStatus.ok) {
+      throw HttpException('HTTP ${response.statusCode}', uri: uri);
+    }
+    final builder = BytesBuilder(copy: false);
+    await response.forEach(builder.add);
+    return builder.takeBytes();
+  } finally {
+    client.close();
+  }
+}
+
 /// Internal utility that resolves `asset:///` URIs to `file://` URIs
 /// by extracting assets from the Flutter bundle to the cache directory.
 ///
 /// On Android, also supports resolving to `content://` URIs for cross-process
 /// access (required by Android Auto, which runs in a separate process).
 class MtAssetResolver {
-  MtAssetResolver._(this._cacheDir, this._contentAuthority);
+  MtAssetResolver._(
+    this._cacheDir,
+    this._contentAuthority, {
+    MtRemoteArtworkFetcher? fetch,
+  }) : _fetch = fetch ?? _httpFetch;
+
+  /// A resolver over an explicit cache directory, for tests.
+  @visibleForTesting
+  factory MtAssetResolver.forTesting({
+    required String cacheDir,
+    String? contentAuthority,
+    MtRemoteArtworkFetcher? fetch,
+  }) => MtAssetResolver._(cacheDir, contentAuthority, fetch: fetch);
 
   final String _cacheDir;
   final String? _contentAuthority;
+  final MtRemoteArtworkFetcher _fetch;
   final Map<String, Uri> _resolved = {};
   final Map<String, Future<Uri>> _inFlight = {};
 
@@ -106,6 +139,64 @@ class MtAssetResolver {
     return fileUri;
   }
 
+  static bool _isRemote(Uri uri) =>
+      uri.scheme == 'http' || uri.scheme == 'https';
+
+  /// Downloads remote artwork into the provider's cache and returns its
+  /// `content://` URI — Android Auto runs in another process and does not
+  /// load remote URLs for browse items. Any failure returns [uri] unchanged.
+  Future<Uri> _resolveRemoteForExternalAccess(Uri uri) async {
+    final authority = _contentAuthority;
+    if (authority == null) return uri;
+
+    final key = 'remote/${_stableHash(uri.toString())}';
+    final contentUri = Uri(scheme: 'content', host: authority, path: '/$key');
+    if (_resolved.containsKey(key)) return contentUri;
+
+    final inFlight = _inFlight[key];
+    if (inFlight != null) return inFlight;
+
+    final future = () async {
+      try {
+        final file = File('$_cacheDir/$key');
+        if (!file.existsSync()) {
+          final bytes = await _fetch(uri);
+          await file.parent.create(recursive: true);
+          await file.writeAsBytes(bytes, flush: true);
+        }
+        _resolved[key] = Uri.file(file.path);
+        return contentUri;
+      } on Object catch (error) {
+        debugPrint(
+          'mt_audio: remote artwork $uri not cached for Android Auto: $error',
+        );
+        return uri;
+      }
+    }();
+    _inFlight[key] = future;
+    try {
+      return await future;
+    } finally {
+      unawaited(_inFlight.remove(key));
+    }
+  }
+
+  /// FNV-1a 64-bit — a file name that is stable across app launches
+  /// (`String.hashCode` is not guaranteed to be). VM integers wrap at 64
+  /// bits, which is exactly the modulus FNV needs.
+  static String _stableHash(String value) {
+    // mt_audio ships only for Android/iOS (see pubspec.yaml platforms),
+    // never compiled to JS; the exact 64-bit FNV-1a offset basis is
+    // required for correctness.
+    // ignore: avoid_js_rounded_ints
+    var hash = 0xcbf29ce484222325;
+    for (final unit in value.codeUnits) {
+      hash ^= unit;
+      hash *= 0x100000001b3;
+    }
+    return hash.toUnsigned(64).toRadixString(16);
+  }
+
   Future<Uri> _extract(String key) async {
     final ByteData data;
     try {
@@ -175,12 +266,20 @@ class MtAssetResolver {
 
   /// Resolves the artwork URI of a [MediaItem] for cross-process access.
   ///
-  /// On Android, produces `content://` URIs accessible by Android Auto.
-  /// Returns the item unchanged if its artwork is not an asset URI.
+  /// On Android, bundled assets and remote images become `content://` URIs
+  /// served by `MtAudioArtworkProvider`. Other URIs are returned unchanged.
   Future<MediaItem> resolveMediaItemForExternalAccess(MediaItem item) async {
-    if (!isAssetUri(item.artUri)) return item;
-    final resolved = await resolveForExternalAccess(item.artUri!);
-    return item.copyWith(artUri: resolved);
+    final artUri = item.artUri;
+    if (artUri == null) return item;
+    if (isAssetUri(artUri)) {
+      return item.copyWith(artUri: await resolveForExternalAccess(artUri));
+    }
+    if (_isRemote(artUri)) {
+      return item.copyWith(
+        artUri: await _resolveRemoteForExternalAccess(artUri),
+      );
+    }
+    return item;
   }
 
   /// Converts a `file://` URI in the asset cache to a `content://` URI.
