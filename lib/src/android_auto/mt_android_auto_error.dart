@@ -25,7 +25,8 @@ enum MtAndroidAutoErrorCode {
   final int platformCode;
 }
 
-/// An error shown on Android Auto until playback starts or it is cleared.
+/// An error shown on Android Auto while nothing plays, until playback
+/// starts or it is cleared.
 class MtAndroidAutoError extends Equatable {
   /// Creates an [MtAndroidAutoError].
   const MtAndroidAutoError({required this.code, required this.message});
@@ -42,9 +43,11 @@ class MtAndroidAutoError extends Equatable {
 
 /// Merges [error] into [state].
 ///
-/// While [state] is playing the error is dropped — Android Auto would
-/// otherwise cover the playback screen. `null` clears any previous error
-/// fields and leaves the processing state as computed from the player.
+/// While [state] is playing the error is hidden — Android Auto would
+/// otherwise cover the playback screen; the caller keeps it (see
+/// [nextAndroidAutoError]) so it shows once playback stops. `null` clears
+/// any previous error fields and leaves the processing state as computed
+/// from the player.
 PlaybackState applyAndroidAutoError(
   PlaybackState state,
   MtAndroidAutoError? error,
@@ -62,3 +65,16 @@ PlaybackState applyAndroidAutoError(
     errorMessage: error.message,
   );
 }
+
+/// The Android Auto error to keep after a playback update from [wasPlaying]
+/// to [playing].
+///
+/// Only a transition from not playing to playing clears [current]: starting
+/// playback resolves whatever the error asked the user to fix. An error set
+/// while playing is kept — [applyAndroidAutoError] hides it until playback
+/// stops — rather than being erased by the very update that sets it.
+MtAndroidAutoError? nextAndroidAutoError({
+  required MtAndroidAutoError? current,
+  required bool wasPlaying,
+  required bool playing,
+}) => !wasPlaying && playing ? null : current;

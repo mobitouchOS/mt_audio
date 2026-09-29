@@ -33,12 +33,71 @@ void main() {
     expect(cleared.processingState, AudioProcessingState.idle);
   });
 
-  test('drops the error while playing', () {
+  test('hides the error while playing', () {
     final state = applyAndroidAutoError(
       PlaybackState(playing: true, processingState: AudioProcessingState.ready),
       premium,
     );
     expect(state.processingState, AudioProcessingState.ready);
     expect(state.errorCode, isNull);
+  });
+
+  group('nextAndroidAutoError', () {
+    /// Runs successive `playing` values through the helper the way
+    /// `MtAudioHandler._broadcastState` does, starting from [error].
+    MtAndroidAutoError? replay(
+      MtAndroidAutoError? error, {
+      required bool wasPlaying,
+      required List<bool> events,
+    }) {
+      var current = error;
+      var previous = wasPlaying;
+      for (final playing in events) {
+        current = nextAndroidAutoError(
+          current: current,
+          wasPlaying: previous,
+          playing: playing,
+        );
+        previous = playing;
+      }
+      return current;
+    }
+
+    test('keeps an error set while playing', () {
+      expect(replay(premium, wasPlaying: true, events: [true]), premium);
+    });
+
+    test('keeps it through later events while still playing', () {
+      expect(
+        replay(premium, wasPlaying: true, events: [true, true, true]),
+        premium,
+      );
+    });
+
+    test('shows it once playback stops', () {
+      final error = replay(premium, wasPlaying: true, events: [true, false]);
+      expect(error, premium);
+      expect(
+        applyAndroidAutoError(PlaybackState(), error).errorCode,
+        MtAndroidAutoErrorCode.premiumAccountRequired.platformCode,
+      );
+    });
+
+    test('clears it when playback goes from not playing to playing', () {
+      expect(
+        replay(premium, wasPlaying: true, events: [true, false, true]),
+        isNull,
+      );
+      expect(replay(premium, wasPlaying: false, events: [true]), isNull);
+    });
+
+    test('shows an error set while idle', () {
+      final error = replay(premium, wasPlaying: false, events: [false]);
+      expect(error, premium);
+      expect(
+        applyAndroidAutoError(PlaybackState(), error).processingState,
+        AudioProcessingState.error,
+      );
+    });
   });
 }

@@ -40,8 +40,12 @@ class MtAudioHandler extends BaseAudioHandler
   /// (e.g. flickering during reorder)
   bool _suppressQueueSync = false;
 
-  /// Error shown on Android Auto until playback starts; see [setAndroidAutoError].
+  /// Error shown on Android Auto while nothing plays; see [setAndroidAutoError].
   MtAndroidAutoError? _androidAutoError;
+
+  /// `playing` as of the previous [_broadcastState], so the Android Auto
+  /// error is cleared only on a not-playing → playing transition.
+  bool _wasPlaying = false;
 
   final _errorSubject = BehaviorSubject<MtAudioError?>.seeded(null);
   final _volumeSubject = BehaviorSubject<double>.seeded(1);
@@ -134,8 +138,12 @@ class MtAudioHandler extends BaseAudioHandler
       queueLength: queueLength,
     );
 
-    // Playback resolves whatever the error asked the user to fix.
-    if (playing) _androidAutoError = null;
+    _androidAutoError = nextAndroidAutoError(
+      current: _androidAutoError,
+      wasPlaying: _wasPlaying,
+      playing: playing,
+    );
+    _wasPlaying = playing;
 
     playbackState.add(
       applyAndroidAutoError(
@@ -576,6 +584,9 @@ class MtAudioHandler extends BaseAudioHandler
   }
 
   /// Shows [error] on Android Auto until playback starts; `null` clears it.
+  ///
+  /// Set while playing, the error is held back until playback stops and
+  /// cleared the next time playback starts.
   void setAndroidAutoError(MtAndroidAutoError? error) {
     _androidAutoError = error;
     _broadcastState(_player.playbackEvent);
