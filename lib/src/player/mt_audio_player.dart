@@ -317,7 +317,13 @@ class MtAudioPlayer {
   /// playback starts, or clears it when `null`.
   ///
   /// Use it for states the user must resolve on the phone — signing in, a
-  /// subscription. Has no effect on iOS.
+  /// subscription. Set while playing, the error is held back until playback
+  /// stops, then cleared the next time playback starts.
+  ///
+  /// Only Android Auto renders the error, but it travels through the shared
+  /// playback state: while it is active and nothing plays,
+  /// [playbackStateStream] reports [MtPlaybackStatus.error] on every
+  /// platform until playback starts or the error is cleared.
   void setAndroidAutoError(MtAndroidAutoError? error) =>
       _handler.setAndroidAutoError(error);
 

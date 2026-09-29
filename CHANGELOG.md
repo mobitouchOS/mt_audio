@@ -7,6 +7,8 @@
 - `MtAudioPlayerConfig.androidBrowsableRootExtras` for browse root content-style hints and search support.
 - `MtAndroidAutoDelegate.onPlayFromSearch(query)` handles "Hey Google, play … on <app>".
 - Remote (`http`/`https`) artwork of browse and search items is cached and served to Android Auto via `content://`.
+- Remote artwork downloads time out after 10 seconds and fall back to the original URL (retried on the next browse), so a stalled cover cannot block a browse list; only JPEG, PNG, GIF and WebP bodies are cached, under a matching file extension so Android Auto gets an image MIME type.
+- An Android Auto error set while playing is held back until playback stops and cleared when playback next starts. While it is active and nothing plays, `playbackStateStream` reports `MtPlaybackStatus.error` on every platform.
 
 ### Changed
 
@@ -14,7 +16,7 @@
 
 ### Fixed
 
-- Android Auto delegate calls now catch every thrown object, not only `Exception`s.
+- Android Auto delegate calls now catch every thrown object, not only `Exception`s, and log each failure with its stack trace.
 
 ### Breaking changes
 
