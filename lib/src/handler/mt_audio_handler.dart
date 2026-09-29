@@ -4,6 +4,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:mt_audio/mt_audio.dart';
 import 'package:mt_audio/src/android_auto/late_binding_android_auto_delegate.dart';
+import 'package:mt_audio/src/android_auto/mt_android_auto_error.dart';
 import 'package:mt_audio/src/android_auto/mt_android_auto_handler.dart';
 import 'package:mt_audio/src/utils/mt_asset_resolver.dart';
 import 'package:rxdart/rxdart.dart';
@@ -35,6 +36,9 @@ class MtAudioHandler extends BaseAudioHandler
   /// Whether queue synchronization is currently suppressed to avoid feedback loops
   /// (e.g. flickering during reorder)
   bool _suppressQueueSync = false;
+
+  /// Error shown on Android Auto until playback starts; see [setAndroidAutoError].
+  MtAndroidAutoError? _androidAutoError;
 
   final _errorSubject = BehaviorSubject<MtAudioError?>.seeded(null);
   final _volumeSubject = BehaviorSubject<double>.seeded(1);
@@ -127,20 +131,26 @@ class MtAudioHandler extends BaseAudioHandler
       queueLength: queueLength,
     );
 
+    // Playback resolves whatever the error asked the user to fix.
+    if (playing) _androidAutoError = null;
+
     playbackState.add(
-      playbackState.value.copyWith(
-        controls: controls,
-        systemActions: _getSystemActions(isLive: isLive),
-        androidCompactActionIndices: List.generate(
-          controls.length.clamp(0, 3),
-          (i) => i,
+      applyAndroidAutoError(
+        playbackState.value.copyWith(
+          controls: controls,
+          systemActions: _getSystemActions(isLive: isLive),
+          androidCompactActionIndices: List.generate(
+            controls.length.clamp(0, 3),
+            (i) => i,
+          ),
+          processingState: _mapProcessingState(processingState),
+          playing: playing,
+          updatePosition: _optimisticPosition ?? _player.position,
+          bufferedPosition: _player.bufferedPosition,
+          speed: _player.speed,
+          queueIndex: queueIndex,
         ),
-        processingState: _mapProcessingState(processingState),
-        playing: playing,
-        updatePosition: _optimisticPosition ?? _player.position,
-        bufferedPosition: _player.bufferedPosition,
-        speed: _player.speed,
-        queueIndex: queueIndex,
+        _androidAutoError,
       ),
     );
   }
@@ -560,6 +570,12 @@ class MtAudioHandler extends BaseAudioHandler
   /// browsing requests occur.
   void bindDelegate(MtAndroidAutoDelegate delegate) {
     _androidAutoDelegate.bind(delegate);
+  }
+
+  /// Shows [error] on Android Auto until playback starts; `null` clears it.
+  void setAndroidAutoError(MtAndroidAutoError? error) {
+    _androidAutoError = error;
+    _broadcastState(_player.playbackEvent);
   }
 
   /// Whether the delegate has been bound.

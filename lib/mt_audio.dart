@@ -12,6 +12,8 @@ export 'package:just_audio/just_audio.dart' show IcyMetadata;
 
 // Android Auto
 export 'src/android_auto/mt_android_auto_delegate.dart';
+export 'src/android_auto/mt_android_auto_error.dart'
+    show MtAndroidAutoError, MtAndroidAutoErrorCode;
 
 // CarPlay
 export 'src/carplay/mt_carplay_delegate.dart';
