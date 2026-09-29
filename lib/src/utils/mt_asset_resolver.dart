@@ -150,47 +150,16 @@ class MtAssetResolver {
   /// `content://` URI — Android Auto runs in another process and does not
   /// load remote URLs for browse items. Any failure returns [uri] unchanged.
   Future<Uri> _resolveRemoteForExternalAccess(Uri uri) async {
-    final authority = _contentAuthority;
-    if (authority == null) return uri;
+    if (_contentAuthority == null) return uri;
 
     final key = 'remote/${_stableHash(uri.toString())}';
-    final contentUri = Uri(scheme: 'content', host: authority, path: '/$key');
-    if (_resolved.containsKey(key)) return contentUri;
+    final cached = _resolved[key];
+    if (cached != null) return toContentUri(cached) ?? uri;
 
     final inFlight = _inFlight[key];
     if (inFlight != null) return inFlight;
 
-    final future = () async {
-      try {
-        final file = File('$_cacheDir/$key');
-        if (!file.existsSync()) {
-          // Write through a sibling `.part` file and rename it onto the
-          // target so a process death mid-write (routine on Android)
-          // never leaves a truncated file at `file.path` — the target is
-          // atomic-or-absent, so a bare `existsSync()` cache-hit check
-          // above stays safe. Clear any `.part` left by a previous crash
-          // before writing a fresh one.
-          final partFile = File('${file.path}.part');
-          if (partFile.existsSync()) await partFile.delete();
-          final bytes = await (_injectedFetch ?? _httpFetch)(
-            uri,
-          ).timeout(_remoteFetchTimeout);
-          await file.parent.create(recursive: true);
-          await partFile.writeAsBytes(bytes, flush: true);
-          await partFile.rename(file.path);
-        }
-        // Remote keys are only ever checked with `containsKey` (above) —
-        // the value stored here is the cached file's `file://` URI, not
-        // the `content://` URI returned to callers.
-        _resolved[key] = Uri.file(file.path);
-        return contentUri;
-      } on Object catch (error) {
-        debugPrint(
-          'mt_audio: remote artwork $uri not cached for Android Auto: $error',
-        );
-        return uri;
-      }
-    }();
+    final future = _cacheRemote(uri, key);
     _inFlight[key] = future;
     try {
       return await future;
@@ -198,6 +167,77 @@ class MtAssetResolver {
       unawaited(_inFlight.remove(key));
     }
   }
+
+  /// Reuses the file a previous process cached for [key] or downloads [uri]
+  /// into a new one. Remote keys map to the cached file's `file://` URI in
+  /// [_resolved], like asset keys; callers get its `content://` URI.
+  Future<Uri> _cacheRemote(Uri uri, String key) async {
+    try {
+      final file = _cachedRemoteFile(key) ?? await _downloadRemote(uri, key);
+      final fileUri = Uri.file(file.path);
+      _resolved[key] = fileUri;
+      return toContentUri(fileUri) ?? uri;
+    } on Object catch (error) {
+      debugPrint(
+        'mt_audio: remote artwork $uri not cached for Android Auto: $error',
+      );
+      return uri;
+    }
+  }
+
+  File? _cachedRemoteFile(String key) => _imageSignatures
+      .map((signature) => File('$_cacheDir/$key.${signature.$1}'))
+      .where((file) => file.existsSync())
+      .firstOrNull;
+
+  /// Downloads [uri] to `<key>.<image extension>`; throws when the bytes are
+  /// not an image, so a captive-portal page or JSON error that came back
+  /// with a 200 is never cached as artwork.
+  Future<File> _downloadRemote(Uri uri, String key) async {
+    // Write through `<key>.part` and rename it onto the target so a process
+    // death mid-write (routine on Android) never leaves a truncated file at
+    // the target — targets are atomic-or-absent, so the bare `existsSync()`
+    // in `_cachedRemoteFile` stays safe. The `.part` name carries no
+    // extension (the image type is only known once the bytes arrive), so a
+    // stale one from a crash is always found and cleared here.
+    final partFile = File('$_cacheDir/$key.part');
+    if (partFile.existsSync()) await partFile.delete();
+    final bytes = await (_injectedFetch ?? _httpFetch)(
+      uri,
+    ).timeout(_remoteFetchTimeout);
+    final extension = _imageExtension(bytes);
+    if (extension == null) {
+      throw const FormatException('not a JPEG, PNG, GIF or WebP image');
+    }
+    await partFile.parent.create(recursive: true);
+    await partFile.writeAsBytes(bytes, flush: true);
+    return partFile.rename('$_cacheDir/$key.$extension');
+  }
+
+  /// Leading bytes of the image types cached as remote artwork, keyed by the
+  /// file extension `MtAudioArtworkProvider.getType` maps to a MIME type.
+  /// `null` matches any byte (WebP's RIFF chunk size).
+  static const _imageSignatures = <(String, List<int?>)>[
+    ('jpg', [0xFF, 0xD8, 0xFF]),
+    ('png', [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]),
+    ('gif', [0x47, 0x49, 0x46, 0x38]),
+    // RIFF <4-byte chunk size> WEBP
+    (
+      'webp',
+      [0x52, 0x49, 0x46, 0x46, null, null, null, null, 0x57, 0x45, 0x42, 0x50],
+    ),
+  ];
+
+  static String? _imageExtension(Uint8List bytes) => _imageSignatures
+      .where((signature) => _startsWith(bytes, signature.$2))
+      .map((signature) => signature.$1)
+      .firstOrNull;
+
+  static bool _startsWith(Uint8List bytes, List<int?> signature) =>
+      bytes.length >= signature.length &&
+      signature.indexed.every(
+        (entry) => entry.$2 == null || bytes[entry.$1] == entry.$2,
+      );
 
   /// Downloads [uri] over the shared client within [_remoteFetchTimeout],
   /// counted from the call so time queued for a free connection counts too.

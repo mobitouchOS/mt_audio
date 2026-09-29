@@ -7,6 +7,11 @@ import 'package:audio_service/audio_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mt_audio/src/utils/mt_asset_resolver.dart';
 
+/// A JPEG/JFIF header — enough for the resolver's signature check.
+final _jpeg = Uint8List.fromList(
+  [0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46],
+);
+
 void main() {
   late Directory cache;
   late List<Uri> fetched;
@@ -30,7 +35,7 @@ void main() {
       fetched.add(uri);
       if (fetch != null) return fetch(uri);
       if (fail) throw const SocketException('offline');
-      return Uint8List.fromList([1, 2, 3]);
+      return _jpeg;
     },
   );
 
@@ -46,7 +51,7 @@ void main() {
     expect(resolved.artUri!.host, 'app.mt_audio.artwork');
     expect(resolved.artUri!.path, startsWith('/remote/'));
     final file = File('${cache.path}${resolved.artUri!.path}');
-    expect(file.readAsBytesSync(), [1, 2, 3]);
+    expect(file.readAsBytesSync(), _jpeg);
   });
 
   test('downloads each URL once', () async {
@@ -85,7 +90,12 @@ void main() {
         item('https://cdn.test/c.jpg'),
       );
       final targetFile = File('${cache.path}${learned.artUri!.path}');
-      final partFile = File('${targetFile.path}.part');
+      // The `.part` file is named after the URL hash alone — the image
+      // type, and so the target's extension, is only known once the
+      // bytes arrive.
+      final partFile = File(
+        targetFile.path.replaceFirst(RegExp(r'\.jpg$'), '.part'),
+      );
       targetFile.deleteSync();
       partFile.writeAsStringSync('garbage');
 
@@ -98,10 +108,63 @@ void main() {
 
       expect(fetched, hasLength(1));
       expect(resolved.artUri, learned.artUri);
-      expect(targetFile.readAsBytesSync(), [1, 2, 3]);
+      expect(targetFile.readAsBytesSync(), _jpeg);
       expect(partFile.existsSync(), isFalse);
     },
   );
+
+  test('reuses the cached file in a fresh process', () async {
+    final first = await resolver().resolveMediaItemForExternalAccess(
+      item('https://cdn.test/a.jpg'),
+    );
+    final second = await resolver().resolveMediaItemForExternalAccess(
+      item('https://cdn.test/a.jpg'),
+    );
+
+    expect(second.artUri, first.artUri);
+    expect(fetched, hasLength(1));
+  });
+
+  for (final (extension, bytes) in [
+    ('jpg', _jpeg.toList()),
+    ('png', [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00]),
+    ('gif', ascii.encode('GIF89a')),
+    (
+      'webp',
+      [...ascii.encode('RIFF'), 0x24, 0, 0, 0, ...ascii.encode('WEBPVP8 ')],
+    ),
+  ]) {
+    test('caches a $extension body under a .$extension name', () async {
+      final resolved = await resolver(
+        fetch: (_) async => Uint8List.fromList(bytes),
+      ).resolveMediaItemForExternalAccess(item('https://cdn.test/cover'));
+
+      // MtAudioArtworkProvider.getType derives the MIME type from it.
+      expect(resolved.artUri!.path, endsWith('.$extension'));
+      final file = File('${cache.path}${resolved.artUri!.path}');
+      expect(file.readAsBytesSync(), bytes);
+    });
+  }
+
+  for (final (kind, body) in [
+    ('an HTML error page', utf8.encode('<!DOCTYPE html><h1>Blocked</h1>')),
+    ('a JSON body', utf8.encode('{"error":"not found"}')),
+    (
+      'a non-WebP RIFF file',
+      [...ascii.encode('RIFF'), 0x24, 0, 0, 0, ...ascii.encode('WAVE')],
+    ),
+    ('an empty body', <int>[]),
+  ]) {
+    test('falls back and caches nothing for $kind', () async {
+      const url = 'https://cdn.test/a.jpg';
+      final resolved = await resolver(
+        fetch: (_) async => Uint8List.fromList(body),
+      ).resolveMediaItemForExternalAccess(item(url));
+
+      expect(resolved.artUri, Uri.parse(url));
+      expect(cache.listSync(recursive: true).whereType<File>(), isEmpty);
+    });
+  }
 
   test(
     'falls back when the download stalls, then retries on the next call',
@@ -110,9 +173,8 @@ void main() {
       var stalled = true;
       final r = resolver(
         remoteFetchTimeout: const Duration(milliseconds: 50),
-        fetch: (_) => stalled
-            ? Completer<Uint8List>().future
-            : Future.value(Uint8List.fromList([1, 2, 3])),
+        fetch: (_) =>
+            stalled ? Completer<Uint8List>().future : Future.value(_jpeg),
       );
 
       // The test-side timeout turns a hang into a fast, readable failure.
