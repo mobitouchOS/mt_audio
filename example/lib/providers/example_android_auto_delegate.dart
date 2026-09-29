@@ -68,6 +68,14 @@ class ExampleAndroidAutoDelegate implements MtAndroidAutoDelegate {
   }
 
   @override
+  Future<void> onPlayFromSearch(String query) async {
+    final matches = query.isEmpty ? sampleTracks : await search(query);
+    if (matches.isEmpty) return;
+    await player.setPlaylist(matches);
+    await player.play();
+  }
+
+  @override
   void onConnect() {}
 
   @override

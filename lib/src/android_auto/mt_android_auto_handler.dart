@@ -10,6 +10,10 @@ mixin MtAndroidAutoHandler on BaseAudioHandler {
   /// The Android Auto delegate that supplies content.
   MtAndroidAutoDelegate get androidAutoDelegate;
 
+  // Every entry point catches Object, not just Exception: a delegate's
+  // StateError or TypeError must degrade to an empty result instead of
+  // escaping into audio_service's media browser callbacks.
+
   @override
   Future<List<MediaItem>> getChildren(
     String parentMediaId, [
@@ -18,8 +22,7 @@ mixin MtAndroidAutoHandler on BaseAudioHandler {
     try {
       final items = await androidAutoDelegate.getChildren(parentMediaId);
       return items.map((item) => item.toMediaItem()).toList();
-    } on Exception catch (_) {
-      // Return empty list on error to avoid breaking Android Auto UI
+    } on Object catch (_) {
       return [];
     }
   }
@@ -31,8 +34,19 @@ mixin MtAndroidAutoHandler on BaseAudioHandler {
   ]) async {
     try {
       await androidAutoDelegate.onPlayFromMediaId(mediaId);
-    } on Exception catch (_) {
-      // Log error but don't throw to avoid breaking Android Auto
+    } on Object catch (_) {
+      return;
+    }
+  }
+
+  @override
+  Future<void> playFromSearch(
+    String query, [
+    Map<String, dynamic>? extras,
+  ]) async {
+    try {
+      await androidAutoDelegate.onPlayFromSearch(query);
+    } on Object catch (_) {
       return;
     }
   }
@@ -45,8 +59,7 @@ mixin MtAndroidAutoHandler on BaseAudioHandler {
     try {
       final items = await androidAutoDelegate.search(query);
       return items.map((item) => item.toMediaItem()).toList();
-    } on Exception catch (_) {
-      // Return empty list on error
+    } on Object catch (_) {
       return [];
     }
   }

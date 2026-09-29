@@ -64,6 +64,13 @@ abstract class MtAndroidAutoDelegate {
   /// Return an empty list if no results are found.
   Future<List<MtAudioItem>> search(String query);
 
+  /// Handles a voice request such as "Hey Google, play … on `<app>`".
+  ///
+  /// [query] is empty when the user asked to play the app without naming
+  /// anything — resume or start something sensible. Defaults to a no-op so
+  /// existing delegates keep compiling when they `extend` this class.
+  Future<void> onPlayFromSearch(String query) async {}
+
   /// Called when Android Auto connects.
   ///
   /// Override to perform actions when the Android Auto session starts.
