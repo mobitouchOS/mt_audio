@@ -6,6 +6,7 @@ import 'package:mt_audio/mt_audio.dart';
 import 'package:mt_audio/src/android_auto/late_binding_android_auto_delegate.dart';
 import 'package:mt_audio/src/android_auto/mt_android_auto_error.dart';
 import 'package:mt_audio/src/android_auto/mt_android_auto_handler.dart';
+import 'package:mt_audio/src/android_auto/mt_children_change_notifier.dart';
 import 'package:mt_audio/src/utils/mt_asset_resolver.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -32,6 +33,8 @@ class MtAudioHandler extends BaseAudioHandler
   final Duration _ffRewindInterval;
 
   final LateBindingAndroidAutoDelegate _androidAutoDelegate;
+
+  final MtChildrenChangeNotifier _childrenChanges = MtChildrenChangeNotifier();
 
   /// Whether queue synchronization is currently suppressed to avoid feedback loops
   /// (e.g. flickering during reorder)
@@ -606,12 +609,23 @@ class MtAudioHandler extends BaseAudioHandler
     );
   }
 
+  //* Android Auto
+
+  @override
+  ValueStream<Map<String, dynamic>> subscribeToChildren(String parentMediaId) =>
+      _childrenChanges.subscribe(parentMediaId);
+
+  /// Asks Android Auto to reload the children of [parentMediaId].
+  void notifyChildrenChanged(String parentMediaId) =>
+      _childrenChanges.notify(parentMediaId);
+
   /// Disposes of this handler and releases resources.
   Future<void> dispose() async {
     _optimisticPositionResetTimer?.cancel();
     await _optimisticPositionSubject.close();
     await _errorSubject.close();
     await _volumeSubject.close();
+    await _childrenChanges.dispose();
     await _player.dispose();
   }
 }

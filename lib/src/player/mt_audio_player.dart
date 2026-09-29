@@ -86,6 +86,7 @@ class MtAudioPlayer {
         androidNotificationOngoing: config.androidNotificationOngoing,
         fastForwardInterval: config.ffRewindInterval,
         rewindInterval: config.ffRewindInterval,
+        androidBrowsableRootExtras: config.androidBrowsableRootExtras,
       ),
     );
 
@@ -319,6 +320,11 @@ class MtAudioPlayer {
   /// subscription. Has no effect on iOS.
   void setAndroidAutoError(MtAndroidAutoError? error) =>
       _handler.setAndroidAutoError(error);
+
+  /// Tells Android Auto to reload the children of [parentMediaId] — for
+  /// example the root after the user signs in or upgrades on the phone.
+  void notifyAndroidAutoChildrenChanged([String parentMediaId = 'root']) =>
+      _handler.notifyChildrenChanged(parentMediaId);
 
   //* Synchronous getters
 
