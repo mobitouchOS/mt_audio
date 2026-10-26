@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:mt_audio/src/android_auto/mt_android_auto_error.dart';
 import 'package:mt_audio/src/carplay/mt_carplay_handler.dart';
 import 'package:mt_audio/src/handler/mt_audio_handler.dart';
 import 'package:mt_audio/src/models/mt_audio_error.dart';
@@ -85,6 +86,7 @@ class MtAudioPlayer {
         androidNotificationOngoing: config.androidNotificationOngoing,
         fastForwardInterval: config.ffRewindInterval,
         rewindInterval: config.ffRewindInterval,
+        androidBrowsableRootExtras: config.androidBrowsableRootExtras,
       ),
     );
 
@@ -308,6 +310,27 @@ class MtAudioPlayer {
   ///
   /// Returns null if CarPlay was not configured during initialization.
   MtCarPlayHandler? get carPlay => _carPlayHandler;
+
+  //* Android Auto
+
+  /// Shows [error] on Android Auto's browse and playback screens until
+  /// playback starts, or clears it when `null`.
+  ///
+  /// Use it for states the user must resolve on the phone — signing in, a
+  /// subscription. Set while playing, the error is held back until playback
+  /// stops, then cleared the next time playback starts.
+  ///
+  /// Only Android Auto renders the error, but it travels through the shared
+  /// playback state: while it is active and nothing plays,
+  /// [playbackStateStream] reports [MtPlaybackStatus.error] on every
+  /// platform until playback starts or the error is cleared.
+  void setAndroidAutoError(MtAndroidAutoError? error) =>
+      _handler.setAndroidAutoError(error);
+
+  /// Tells Android Auto to reload the children of [parentMediaId] — for
+  /// example the root after the user signs in or upgrades on the phone.
+  void notifyAndroidAutoChildrenChanged([String parentMediaId = 'root']) =>
+      _handler.notifyChildrenChanged(parentMediaId);
 
   //* Synchronous getters
 

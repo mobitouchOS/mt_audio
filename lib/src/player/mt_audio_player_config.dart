@@ -48,6 +48,7 @@ class MtAudioPlayerConfig {
     this.androidAutoDelegateFactory,
     this.handleInterruptions = true,
     this.androidNotificationOngoing = false,
+    this.androidBrowsableRootExtras,
   });
 
   /// Notification channel ID for Android.
@@ -98,4 +99,9 @@ class MtAudioPlayerConfig {
   /// When false (the default), the notification can be dismissed when paused.
   /// Set to true to keep the notification persistent at all times.
   final bool androidNotificationOngoing;
+
+  /// Extras returned with Android Auto's browsable root, e.g. content-style
+  /// hints (`android.media.browse.CONTENT_STYLE_BROWSABLE_HINT`) and
+  /// `android.media.browse.SEARCH_SUPPORTED`.
+  final Map<String, dynamic>? androidBrowsableRootExtras;
 }

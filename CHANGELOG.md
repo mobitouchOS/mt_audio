@@ -1,3 +1,27 @@
+## 0.2.0-beta.6 - 2026-09-29
+
+### Added
+
+- `MtAudioPlayer.setAndroidAutoError(MtAndroidAutoError?)` shows sign-in / premium / app errors on Android Auto until playback starts.
+- `MtAudioPlayer.notifyAndroidAutoChildrenChanged([parentMediaId])` makes Android Auto reload a browse node.
+- `MtAudioPlayerConfig.androidBrowsableRootExtras` for browse root content-style hints and search support.
+- `MtAndroidAutoDelegate.onPlayFromSearch(query)` handles "Hey Google, play … on <app>".
+- Remote (`http`/`https`) artwork of browse and search items is cached and served to Android Auto via `content://`.
+- Remote artwork downloads time out after 10 seconds and fall back to the original URL (retried on the next browse), so a stalled cover cannot block a browse list; only JPEG, PNG, GIF and WebP bodies are cached, under a matching file extension so Android Auto gets an image MIME type.
+- An Android Auto error set while playing is held back until playback stops (including when the queue completes on its own) and cleared when playback next starts. While it is active and nothing plays, `playbackStateStream` reports `MtPlaybackStatus.error` on every platform.
+
+### Changed
+
+- Requires `mt_carplay` `^1.5.1` (CarPlay cold-start connection status).
+
+### Fixed
+
+- Android Auto delegate calls now catch every thrown object, not only `Exception`s, and log each failure with its stack trace.
+
+### Breaking changes
+
+- `MtAndroidAutoDelegate` gained `onPlayFromSearch`. Delegates declared with `implements` must add the method; delegates declared with `extends` are unaffected (it has a no-op default).
+
 ## 0.2.0-beta.5 - 2026-06-10
 
 ### Changed

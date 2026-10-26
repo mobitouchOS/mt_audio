@@ -4,7 +4,9 @@ import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:mt_audio/mt_audio.dart';
 import 'package:mt_audio/src/android_auto/late_binding_android_auto_delegate.dart';
+import 'package:mt_audio/src/android_auto/mt_android_auto_error.dart';
 import 'package:mt_audio/src/android_auto/mt_android_auto_handler.dart';
+import 'package:mt_audio/src/android_auto/mt_children_change_notifier.dart';
 import 'package:mt_audio/src/utils/mt_asset_resolver.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -32,9 +34,18 @@ class MtAudioHandler extends BaseAudioHandler
 
   final LateBindingAndroidAutoDelegate _androidAutoDelegate;
 
+  final MtChildrenChangeNotifier _childrenChanges = MtChildrenChangeNotifier();
+
   /// Whether queue synchronization is currently suppressed to avoid feedback loops
   /// (e.g. flickering during reorder)
   bool _suppressQueueSync = false;
+
+  /// Error shown on Android Auto while nothing plays; see [setAndroidAutoError].
+  MtAndroidAutoError? _androidAutoError;
+
+  /// `playing` as of the previous [_broadcastState], so the Android Auto
+  /// error is cleared only on a not-playing → playing transition.
+  bool _wasPlaying = false;
 
   final _errorSubject = BehaviorSubject<MtAudioError?>.seeded(null);
   final _volumeSubject = BehaviorSubject<double>.seeded(1);
@@ -127,22 +138,30 @@ class MtAudioHandler extends BaseAudioHandler
       queueLength: queueLength,
     );
 
-    playbackState.add(
-      playbackState.value.copyWith(
-        controls: controls,
-        systemActions: _getSystemActions(isLive: isLive),
-        androidCompactActionIndices: List.generate(
-          controls.length.clamp(0, 3),
-          (i) => i,
-        ),
-        processingState: _mapProcessingState(processingState),
-        playing: playing,
-        updatePosition: _optimisticPosition ?? _player.position,
-        bufferedPosition: _player.bufferedPosition,
-        speed: _player.speed,
-        queueIndex: queueIndex,
+    final state = playbackState.value.copyWith(
+      controls: controls,
+      systemActions: _getSystemActions(isLive: isLive),
+      androidCompactActionIndices: List.generate(
+        controls.length.clamp(0, 3),
+        (i) => i,
       ),
+      processingState: _mapProcessingState(processingState),
+      playing: playing,
+      updatePosition: _optimisticPosition ?? _player.position,
+      bufferedPosition: _player.bufferedPosition,
+      speed: _player.speed,
+      queueIndex: queueIndex,
     );
+
+    final audible = isPlayingAudibly(state);
+    _androidAutoError = nextAndroidAutoError(
+      current: _androidAutoError,
+      wasPlaying: _wasPlaying,
+      playing: audible,
+    );
+    _wasPlaying = audible;
+
+    playbackState.add(applyAndroidAutoError(state, _androidAutoError));
   }
 
   Duration _clampToDuration(Duration position) {
@@ -562,6 +581,15 @@ class MtAudioHandler extends BaseAudioHandler
     _androidAutoDelegate.bind(delegate);
   }
 
+  /// Shows [error] on Android Auto until playback starts; `null` clears it.
+  ///
+  /// Set while playing, the error is held back until playback stops and
+  /// cleared the next time playback starts.
+  void setAndroidAutoError(MtAndroidAutoError? error) {
+    _androidAutoError = error;
+    _broadcastState(_player.playbackEvent);
+  }
+
   /// Whether the delegate has been bound.
   bool get isDelegateBound => _androidAutoDelegate.isBound;
 
@@ -590,12 +618,23 @@ class MtAudioHandler extends BaseAudioHandler
     );
   }
 
+  //* Android Auto
+
+  @override
+  ValueStream<Map<String, dynamic>> subscribeToChildren(String parentMediaId) =>
+      _childrenChanges.subscribe(parentMediaId);
+
+  /// Asks Android Auto to reload the children of [parentMediaId].
+  void notifyChildrenChanged(String parentMediaId) =>
+      _childrenChanges.notify(parentMediaId);
+
   /// Disposes of this handler and releases resources.
   Future<void> dispose() async {
     _optimisticPositionResetTimer?.cancel();
     await _optimisticPositionSubject.close();
     await _errorSubject.close();
     await _volumeSubject.close();
+    await _childrenChanges.dispose();
     await _player.dispose();
   }
 }

@@ -6,7 +6,7 @@ import 'package:mt_audio_example/sample_data/sample_data.dart';
 /// Provides a browsable media hierarchy with two categories:
 /// - Songs: Sample MP3 tracks
 /// - Live Radio: Live streaming stations
-class ExampleAndroidAutoDelegate implements MtAndroidAutoDelegate {
+class ExampleAndroidAutoDelegate extends MtAndroidAutoDelegate {
   /// Creates an [ExampleAndroidAutoDelegate].
   ExampleAndroidAutoDelegate({required this.player});
 
@@ -22,10 +22,24 @@ class ExampleAndroidAutoDelegate implements MtAndroidAutoDelegate {
   /// Media ID for the Live Radio category.
   static const liveRadioId = 'live';
 
+  /// Flip to see Android Auto's error surface on the Desktop Head Unit.
+  static bool showPremiumError = false;
+
   @override
   Future<List<MtMediaLibraryItem>> getChildren(String? parentMediaId) async {
     // Root level - return categories
     if (parentMediaId == null || parentMediaId == rootId) {
+      if (showPremiumError) {
+        player.setAndroidAutoError(
+          const MtAndroidAutoError(
+            code: MtAndroidAutoErrorCode.premiumAccountRequired,
+            message: 'Available with Premium. Details in the phone app.',
+          ),
+        );
+        return const [];
+      }
+      player.setAndroidAutoError(null);
+
       return const [
         MtBrowsableItem(id: songsId, title: 'Songs'),
         MtBrowsableItem(id: liveRadioId, title: 'Live Radio'),
@@ -65,6 +79,14 @@ class ExampleAndroidAutoDelegate implements MtAndroidAutoDelegate {
               (i.artist?.toLowerCase().contains(lowerQuery) ?? false),
         )
         .toList();
+  }
+
+  @override
+  Future<void> onPlayFromSearch(String query) async {
+    final matches = query.isEmpty ? sampleTracks : await search(query);
+    if (matches.isEmpty) return;
+    await player.setPlaylist(matches);
+    await player.play();
   }
 
   @override

@@ -19,6 +19,12 @@ void main() async {
           ExampleAndroidAutoDelegate(player: player),
       carPlayDelegateFactory: (player) =>
           ExampleCarPlayDelegate(player: player),
+      androidBrowsableRootExtras: const {
+        'android.media.browse.CONTENT_STYLE_SUPPORTED': true,
+        'android.media.browse.CONTENT_STYLE_BROWSABLE_HINT': 1,
+        'android.media.browse.CONTENT_STYLE_PLAYABLE_HINT': 1,
+        'android.media.browse.SEARCH_SUPPORTED': true,
+      },
     ),
   );
 

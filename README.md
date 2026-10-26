@@ -528,7 +528,7 @@ MtPlayerBuilder(
 ### 1. Implement the delegate
 
 ```dart
-class MyAndroidAutoDelegate implements MtAndroidAutoDelegate {
+class MyAndroidAutoDelegate extends MtAndroidAutoDelegate {
   MyAndroidAutoDelegate({required this.player});
   final MtAudioPlayer player;
 
@@ -561,6 +561,14 @@ class MyAndroidAutoDelegate implements MtAndroidAutoDelegate {
   }
 
   @override
+  Future<void> onPlayFromSearch(String query) async {
+    final matches = await search(query);
+    if (matches.isEmpty) return;
+    await player.setAudioItem(matches.first);
+    await player.play();
+  }
+
+  @override
   void onConnect() {}
 
   @override
@@ -588,6 +596,50 @@ final player = await MtAudioPlayer.init(
         MyAndroidAutoDelegate(player: player),
   ),
 );
+```
+
+### 3. Browse root extras and artwork (optional)
+
+`androidBrowsableRootExtras` is returned with Android Auto's browsable root. Use it for content-style hints (how browsable and playable items are laid out) and set `android.media.browse.SEARCH_SUPPORTED` to show Android Auto's search button, which routes queries to your delegate's `search`:
+
+```dart
+final player = await MtAudioPlayer.init(
+  config: MtAudioPlayerConfig(
+    notificationChannelId: 'audio',
+    notificationChannelName: 'Audio',
+    androidAutoDelegateFactory: (player) =>
+        MyAndroidAutoDelegate(player: player),
+    androidBrowsableRootExtras: const {
+      'android.media.browse.CONTENT_STYLE_SUPPORTED': true,
+      // 1 = list, 2 = grid, 3 = category list, 4 = category grid
+      'android.media.browse.CONTENT_STYLE_BROWSABLE_HINT': 2,
+      'android.media.browse.CONTENT_STYLE_PLAYABLE_HINT': 1,
+      'android.media.browse.SEARCH_SUPPORTED': true,
+    },
+  ),
+);
+```
+
+Android Auto runs in a separate process and cannot read your app's files or load remote URLs for browse items. On Android, `mt_audio` therefore serves the `artworkUri` of browse and search results through its own `content://` provider: `asset:///` artwork is extracted from the bundle, and remote `http(s)` artwork is downloaded once and cached in the app's cache directory. Each download has a 10-second timeout and only JPEG, PNG, GIF and WebP bodies are cached; if a download fails, the item keeps its original URL.
+
+### 4. Errors and refresh
+
+Show a sign-in / premium / app error on Android Auto until playback starts. An error set while something plays is held back until playback stops. While the error is active and nothing plays, `playbackStateStream` reports `MtPlaybackStatus.error` on every platform:
+
+```dart
+player.setAndroidAutoError(
+  const MtAndroidAutoError(
+    code: MtAndroidAutoErrorCode.premiumAccountRequired,
+    message: 'Available with Premium. Details in the phone app.',
+  ),
+);
+// player.setAndroidAutoError(null); // clear it once resolved
+```
+
+Ask Android Auto to reload a browse node after your data changes (defaults to the root):
+
+```dart
+player.notifyAndroidAutoChildrenChanged();
 ```
 
 ---

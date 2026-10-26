@@ -41,6 +41,12 @@ class LateBindingAndroidAutoDelegate implements MtAndroidAutoDelegate {
   }
 
   @override
+  Future<void> onPlayFromSearch(String query) {
+    if (_delegate == null) return Future.value();
+    return _delegate!.onPlayFromSearch(query);
+  }
+
+  @override
   void onConnect() {
     _delegate?.onConnect();
   }
