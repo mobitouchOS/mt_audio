@@ -138,32 +138,30 @@ class MtAudioHandler extends BaseAudioHandler
       queueLength: queueLength,
     );
 
+    final state = playbackState.value.copyWith(
+      controls: controls,
+      systemActions: _getSystemActions(isLive: isLive),
+      androidCompactActionIndices: List.generate(
+        controls.length.clamp(0, 3),
+        (i) => i,
+      ),
+      processingState: _mapProcessingState(processingState),
+      playing: playing,
+      updatePosition: _optimisticPosition ?? _player.position,
+      bufferedPosition: _player.bufferedPosition,
+      speed: _player.speed,
+      queueIndex: queueIndex,
+    );
+
+    final audible = isPlayingAudibly(state);
     _androidAutoError = nextAndroidAutoError(
       current: _androidAutoError,
       wasPlaying: _wasPlaying,
-      playing: playing,
+      playing: audible,
     );
-    _wasPlaying = playing;
+    _wasPlaying = audible;
 
-    playbackState.add(
-      applyAndroidAutoError(
-        playbackState.value.copyWith(
-          controls: controls,
-          systemActions: _getSystemActions(isLive: isLive),
-          androidCompactActionIndices: List.generate(
-            controls.length.clamp(0, 3),
-            (i) => i,
-          ),
-          processingState: _mapProcessingState(processingState),
-          playing: playing,
-          updatePosition: _optimisticPosition ?? _player.position,
-          bufferedPosition: _player.bufferedPosition,
-          speed: _player.speed,
-          queueIndex: queueIndex,
-        ),
-        _androidAutoError,
-      ),
-    );
+    playbackState.add(applyAndroidAutoError(state, _androidAutoError));
   }
 
   Duration _clampToDuration(Duration position) {

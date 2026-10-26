@@ -41,18 +41,26 @@ class MtAndroidAutoError extends Equatable {
   List<Object?> get props => [code, message];
 }
 
+/// Whether [state] has audio playing.
+///
+/// just_audio keeps `playing` true after a queue completes on its own, though
+/// nothing plays any more: a deferred error must show then, and a restart
+/// must count as playback starting.
+bool isPlayingAudibly(PlaybackState state) =>
+    state.playing && state.processingState != AudioProcessingState.completed;
+
 /// Merges [error] into [state].
 ///
-/// While [state] is playing the error is hidden — Android Auto would
-/// otherwise cover the playback screen; the caller keeps it (see
-/// [nextAndroidAutoError]) so it shows once playback stops. `null` clears
-/// any previous error fields and leaves the processing state as computed
-/// from the player.
+/// While [state] is playing audibly (see [isPlayingAudibly]) the error is
+/// hidden — Android Auto would otherwise cover the playback screen; the
+/// caller keeps it (see [nextAndroidAutoError]) so it shows once playback
+/// stops. `null` clears any previous error fields and leaves the processing
+/// state as computed from the player.
 PlaybackState applyAndroidAutoError(
   PlaybackState state,
   MtAndroidAutoError? error,
 ) {
-  if (error == null || state.playing) {
+  if (error == null || isPlayingAudibly(state)) {
     // copyWith uses a sentinel default, not a literal `null`, so these
     // explicit nulls are required to actually clear the fields — omitting
     // them would keep whatever error was previously set.

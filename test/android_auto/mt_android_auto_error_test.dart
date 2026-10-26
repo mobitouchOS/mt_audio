@@ -42,6 +42,19 @@ void main() {
     expect(state.errorCode, isNull);
   });
 
+  test('shows the error once a queue completes on its own', () {
+    // just_audio keeps `playing` true after the last item ends.
+    final state = applyAndroidAutoError(
+      PlaybackState(
+        playing: true,
+        processingState: AudioProcessingState.completed,
+      ),
+      premium,
+    );
+    expect(state.processingState, AudioProcessingState.error);
+    expect(state.errorCode, 4);
+  });
+
   group('nextAndroidAutoError', () {
     /// Runs successive `playing` values through the helper the way
     /// `MtAudioHandler._broadcastState` does, starting from [error].
@@ -62,6 +75,36 @@ void main() {
       }
       return current;
     }
+
+    /// Like [replay], for full playback states mapped the way the handler
+    /// maps them.
+    MtAndroidAutoError? replayStates(
+      MtAndroidAutoError? error, {
+      required bool wasPlaying,
+      required List<PlaybackState> events,
+    }) => replay(
+      error,
+      wasPlaying: wasPlaying,
+      events: [for (final state in events) isPlayingAudibly(state)],
+    );
+
+    test('clears it when playback restarts after a queue completed', () {
+      PlaybackState playing(AudioProcessingState processingState) =>
+          PlaybackState(playing: true, processingState: processingState);
+
+      expect(
+        replayStates(
+          premium,
+          wasPlaying: true,
+          events: [
+            playing(AudioProcessingState.ready),
+            playing(AudioProcessingState.completed),
+            playing(AudioProcessingState.ready),
+          ],
+        ),
+        isNull,
+      );
+    });
 
     test('keeps an error set while playing', () {
       expect(replay(premium, wasPlaying: true, events: [true]), premium);
