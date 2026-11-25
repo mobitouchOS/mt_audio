@@ -24,7 +24,7 @@ cd example && flutter run
 cd example && flutter build ios --debug
 ```
 
-There are no tests, code generation, or build_runner steps in this module.
+Run tests with `flutter test`. There are no code generation or build_runner steps in this module.
 
 ## Architecture
 

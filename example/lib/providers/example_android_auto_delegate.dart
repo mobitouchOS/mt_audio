@@ -70,7 +70,11 @@ class ExampleAndroidAutoDelegate extends MtAndroidAutoDelegate {
   }
 
   @override
-  Future<List<MtAudioItem>> search(String query) async {
+  Future<List<MtMediaLibraryItem>> search(String query) async => [
+    for (final item in _matching(query)) MtPlayableItem(item: item),
+  ];
+
+  List<MtAudioItem> _matching(String query) {
     final lowerQuery = query.toLowerCase();
     return allSampleItems
         .where(
@@ -83,7 +87,7 @@ class ExampleAndroidAutoDelegate extends MtAndroidAutoDelegate {
 
   @override
   Future<void> onPlayFromSearch(String query) async {
-    final matches = query.isEmpty ? sampleTracks : await search(query);
+    final matches = query.isEmpty ? sampleTracks : _matching(query);
     if (matches.isEmpty) return;
     await player.setPlaylist(matches);
     await player.play();

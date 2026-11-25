@@ -1,3 +1,19 @@
+## 0.2.0-beta.7 - 2026-11-25
+
+### Changed
+
+- `MtAndroidAutoDelegate.search` returns `List<MtMediaLibraryItem>` instead of `List<MtAudioItem>`. Return `MtBrowsableItem`s for albums, playlists or other folders: Android Auto shows them as folders in the search results and opens them through `getChildren`.
+- `MtAudioPlayer.skipToPrevious` (and so `MtTrackSkipButton` and the system media controls) restarts the current item when it has played for more than 3 seconds or is the first item, instead of always moving to the previous item. `skipToNext` on the last item does nothing.
+
+### Fixed
+
+- Android Auto: the player background no longer flashes on every play/pause. The queue is sent to the media session only when its items change, not on every sequence-state event.
+- CarPlay / Android Auto: "Previous" on the first item and "Next" on the last no longer reset the progress bar to 0:00 while the audio keeps playing. "Previous" restarts the current item when there is nothing before it or after 3 seconds of playback; "Next" on the last item does nothing. `LoopMode.all` still wraps around.
+
+### Breaking changes
+
+- `MtAndroidAutoDelegate.search` has a new return type. Wrap existing track results in `MtPlayableItem(item: …)`.
+
 ## 0.2.0-beta.6 - 2026-09-29
 
 ### Added

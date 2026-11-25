@@ -7,6 +7,7 @@ import 'package:mt_audio/src/android_auto/late_binding_android_auto_delegate.dar
 import 'package:mt_audio/src/android_auto/mt_android_auto_error.dart';
 import 'package:mt_audio/src/android_auto/mt_android_auto_handler.dart';
 import 'package:mt_audio/src/android_auto/mt_children_change_notifier.dart';
+import 'package:mt_audio/src/handler/mt_transport_rules.dart';
 import 'package:mt_audio/src/utils/mt_asset_resolver.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -308,9 +309,14 @@ class MtAudioHandler extends BaseAudioHandler
   }
 
   void _emitQueue(List<IndexedAudioSource> effectiveSequence) {
-    queue.add(
-      effectiveSequence.map((source) => source.tag as MediaItem).toList(),
-    );
+    final next = effectiveSequence
+        .map((source) => source.tag as MediaItem)
+        .toList();
+    // A sequence-state event also fires on play/pause. Re-sending an unchanged
+    // queue makes Android Auto rebuild its player screen and flash the
+    // background.
+    if (isSameQueue(queue.valueOrNull, next)) return;
+    queue.add(next);
   }
 
   /// Adds an audio item to the end of the queue.
@@ -383,7 +389,9 @@ class MtAudioHandler extends BaseAudioHandler
 
       await setShuffleMode(AudioServiceShuffleMode.none);
 
-      queue.add(reorderedQueue);
+      // Emit the player's own tags: they are new objects, and a later
+      // sequence-state event compares against them by identity.
+      _emitQueue(_player.sequenceState.effectiveSequence);
 
       if (wasPlaying) {
         await _player.play();
@@ -482,12 +490,24 @@ class MtAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> skipToNext() async {
+    // Nothing after the last item: leave position and audio as they are.
+    // With LoopMode.all just_audio reports a next item and wraps around.
+    if (!_player.hasNext) return;
     _setOptimisticPosition(Duration.zero);
     await _player.seekToNext();
   }
 
   @override
   Future<void> skipToPrevious() async {
+    final action = skipPreviousAction(
+      hasPrevious: _player.hasPrevious,
+      position: _player.position,
+    );
+    if (action == SkipPreviousAction.restart) {
+      // seek() sets the optimistic position itself.
+      await seek(Duration.zero);
+      return;
+    }
     _setOptimisticPosition(Duration.zero);
     await _player.seekToPrevious();
   }

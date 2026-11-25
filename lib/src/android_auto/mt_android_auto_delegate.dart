@@ -1,4 +1,3 @@
-import 'package:mt_audio/src/models/mt_audio_item.dart';
 import 'package:mt_audio/src/models/mt_media_library_item.dart';
 
 /// Abstract delegate for handling Android Auto communication.
@@ -32,8 +31,9 @@ import 'package:mt_audio/src/models/mt_media_library_item.dart';
 ///   }
 ///
 ///   @override
-///   Future<List<MtAudioItem>> search(String query) async {
-///     return await repository.searchTracks(query);
+///   Future<List<MtMediaLibraryItem>> search(String query) async {
+///     final tracks = await repository.searchTracks(query);
+///     return [for (final track in tracks) MtPlayableItem(item: track)];
 ///   }
 ///
 ///   @override
@@ -68,9 +68,11 @@ abstract class MtAndroidAutoDelegate {
 
   /// Handles search requests from Android Auto.
   ///
-  /// Return a list of [MtAudioItem]s matching the search [query].
-  /// Return an empty list if no results are found.
-  Future<List<MtAudioItem>> search(String query);
+  /// Return the items matching the search [query]: [MtPlayableItem]s for
+  /// tracks and [MtBrowsableItem]s for albums, playlists or other folders.
+  /// Android Auto opens a browsable result through [getChildren], like a
+  /// folder in the browse tree. Return an empty list if nothing matches.
+  Future<List<MtMediaLibraryItem>> search(String query);
 
   /// Handles a voice request such as "Hey Google, play … on `<app>`".
   ///

@@ -58,7 +58,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  mt_audio: ^0.2.0-beta.3
+  mt_audio: ^0.2.0-beta.7
 ```
 
 ---
@@ -555,14 +555,20 @@ class MyAndroidAutoDelegate extends MtAndroidAutoDelegate {
     await player.play();
   }
 
+  // Return MtPlayableItems for tracks and MtBrowsableItems for albums,
+  // playlists or other folders. Android Auto opens a browsable result
+  // through getChildren, like a folder in the browse tree.
   @override
-  Future<List<MtAudioItem>> search(String query) async {
-    return tracks.where((t) => t.title.contains(query)).toList();
-  }
+  Future<List<MtMediaLibraryItem>> search(String query) async => [
+    for (final track in _matching(query)) MtPlayableItem(item: track),
+  ];
+
+  List<MtAudioItem> _matching(String query) =>
+      tracks.where((t) => t.title.contains(query)).toList();
 
   @override
   Future<void> onPlayFromSearch(String query) async {
-    final matches = await search(query);
+    final matches = _matching(query);
     if (matches.isEmpty) return;
     await player.setAudioItem(matches.first);
     await player.play();

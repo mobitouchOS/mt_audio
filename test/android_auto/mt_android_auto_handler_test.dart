@@ -14,6 +14,7 @@ class _Handler extends BaseAudioHandler with MtAndroidAutoHandler {
 class _Delegate extends MtAndroidAutoDelegate {
   final searches = <String>[];
   Object? throwOnBrowse;
+  List<MtMediaLibraryItem>? searchResults;
 
   @override
   Future<List<MtMediaLibraryItem>> getChildren(String? parentMediaId) async {
@@ -29,8 +30,8 @@ class _Delegate extends MtAndroidAutoDelegate {
       throw StateError('boom');
 
   @override
-  Future<List<MtAudioItem>> search(String query) async =>
-      throw StateError('boom');
+  Future<List<MtMediaLibraryItem>> search(String query) async =>
+      searchResults ?? (throw StateError('boom'));
 
   @override
   Future<void> onPlayFromSearch(String query) async {
@@ -101,6 +102,31 @@ void main() {
     );
   });
 
+  test('search returns folders as browsable and tracks as playable', () async {
+    const groupKey = 'android.media.browse.CONTENT_STYLE_GROUP_TITLE_HINT';
+    delegate.searchResults = [
+      const MtBrowsableItem(
+        id: 'album/1',
+        title: 'Album',
+        extras: {groupKey: 'Albums'},
+      ),
+      MtPlayableItem(
+        item: MtAudioItem(
+          id: 'track/1',
+          uri: Uri.parse('https://example.com/1.mp3'),
+          title: 'Track',
+          extras: const {groupKey: 'Songs'},
+        ),
+      ),
+    ];
+
+    final items = await handler.search('q');
+
+    expect(items.map((item) => item.id), ['album/1', 'track/1']);
+    expect(items.map((item) => item.playable), [false, true]);
+    expect(items.map((item) => item.extras?[groupKey]), ['Albums', 'Songs']);
+  });
+
   test('playFromSearch forwards the query to the delegate', () async {
     await handler.playFromSearch('kaczuszki');
     expect(delegate.searches, ['kaczuszki']);
@@ -121,5 +147,5 @@ class _MinimalDelegate extends MtAndroidAutoDelegate {
   Future<void> onPlayFromMediaId(String mediaId) async {}
 
   @override
-  Future<List<MtAudioItem>> search(String query) async => const [];
+  Future<List<MtMediaLibraryItem>> search(String query) async => const [];
 }
