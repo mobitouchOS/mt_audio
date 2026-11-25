@@ -389,7 +389,9 @@ class MtAudioHandler extends BaseAudioHandler
 
       await setShuffleMode(AudioServiceShuffleMode.none);
 
-      queue.add(reorderedQueue);
+      // Emit the player's own tags: they are new objects, and a later
+      // sequence-state event compares against them by identity.
+      _emitQueue(_player.sequenceState.effectiveSequence);
 
       if (wasPlaying) {
         await _player.play();

@@ -393,9 +393,14 @@ class MtAudioPlayer {
   Future<void> skipToIndex(int index) => _handler.skipToQueueItem(index);
 
   /// Skips to the next item in the queue.
+  ///
+  /// Does nothing on the last item unless the loop mode is [LoopMode.all].
   Future<void> skipToNext() => _handler.skipToNext();
 
   /// Skips to the previous item in the queue.
+  ///
+  /// Restarts the current item instead when there is no previous item or the
+  /// current one has played for more than 3 seconds.
   Future<void> skipToPrevious() => _handler.skipToPrevious();
 
   /// Clears the entire queue.

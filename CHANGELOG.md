@@ -3,6 +3,7 @@
 ### Changed
 
 - `MtAndroidAutoDelegate.search` returns `List<MtMediaLibraryItem>` instead of `List<MtAudioItem>`. Return `MtBrowsableItem`s for albums, playlists or other folders: Android Auto shows them as folders in the search results and opens them through `getChildren`.
+- `MtAudioPlayer.skipToPrevious` (and so `MtTrackSkipButton` and the system media controls) restarts the current item when it has played for more than 3 seconds or is the first item, instead of always moving to the previous item. `skipToNext` on the last item does nothing.
 
 ### Fixed
 
