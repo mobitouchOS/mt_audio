@@ -1,5 +1,4 @@
 import 'package:mt_audio/src/android_auto/mt_android_auto_delegate.dart';
-import 'package:mt_audio/src/models/mt_audio_item.dart';
 import 'package:mt_audio/src/models/mt_media_library_item.dart';
 
 /// Internal delegate that allows late binding of the actual implementation.
@@ -35,7 +34,7 @@ class LateBindingAndroidAutoDelegate implements MtAndroidAutoDelegate {
   }
 
   @override
-  Future<List<MtAudioItem>> search(String query) {
+  Future<List<MtMediaLibraryItem>> search(String query) {
     if (_delegate == null) return Future.value([]);
     return _delegate!.search(query);
   }

@@ -294,13 +294,14 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.2.0-beta.6"
+    version: "0.2.0-beta.7"
   mt_carplay:
-    dependency: "direct overridden"
+    dependency: transitive
     description:
-      path: "../../mt_carplay"
-      relative: true
-    source: path
+      name: mt_carplay
+      sha256: "46e62200399ebe52f87a0fcf8f703364c4beea4faf0e97e5e55b156b2c328b0b"
+      url: "https://pub.dev"
+    source: hosted
     version: "1.7.1"
   native_toolchain_c:
     dependency: transitive
@@ -620,5 +621,5 @@ packages:
     source: hosted
     version: "3.1.3"
 sdks:
-  dart: ">=3.11.0 <4.0.0"
-  flutter: ">=3.38.4"
+  dart: ">=3.12.0 <4.0.0"
+  flutter: ">=3.44.0"
