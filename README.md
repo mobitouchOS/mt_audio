@@ -170,7 +170,9 @@ If streaming over plain HTTP, also add:
 
 CarPlay requires additional setup. See the [Apple CarPlay Integration](#apple-carplay-integration) section below.
 
-**Podfile** -- ensure minimum iOS 14.0:
+**Minimum iOS version** -- `mt_carplay` requires iOS 14.0. Set the Runner target's deployment target to 14.0 in Xcode (Runner target > General > Minimum Deployments), or `IPHONEOS_DEPLOYMENT_TARGET = 14.0` in `project.pbxproj`. This is required when using Swift Package Manager; otherwise the build fails with "The package product 'mt-carplay' requires minimum platform version 14.0".
+
+If your project still uses CocoaPods, also set it in the **Podfile**:
 
 ```ruby
 platform :ios, '14.0'
